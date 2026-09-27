@@ -5,35 +5,102 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Волшебный песочный стол</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;min-height:100%}
-body{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px;background:#302721;font-family:system-ui,Arial,sans-serif}
-.scene{position:relative;width:min(1250px,100%);margin:auto;overflow:hidden;border-radius:12px;box-shadow:0 18px 40px #120d0b88;touch-action:none;user-select:none}
-canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;touch-action:none;cursor:none}
-.hint{position:absolute;top:2%;left:2%;max-width:43%;padding:8px 12px;border-radius:11px;background:#fff2d4e8;color:#4b3324;font-size:clamp(11px,1.3vw,16px);line-height:1.3;pointer-events:none}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  min-height:100svh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  padding:12px;
+  background:#302721;
+  font-family:system-ui,Arial,sans-serif;
+}
+.scene{
+  position:relative;
+  width:min(1250px,100%);
+  margin:auto;
+  overflow:hidden;
+  border-radius:12px;
+  box-shadow:0 18px 40px #120d0b88;
+  touch-action:none;
+  user-select:none;
+}
+canvas{
+  display:block;
+  width:100%;
+  height:auto;
+  aspect-ratio:16/9;
+  touch-action:none;
+  cursor:none;
+}
+.hint{
+  position:absolute;
+  top:2%;
+  left:2%;
+  max-width:43%;
+  padding:8px 12px;
+  border-radius:11px;
+  background:#fff2d4e8;
+  color:#4b3324;
+  font-size:clamp(11px,1.3vw,16px);
+  line-height:1.3;
+  pointer-events:none;
+}
 .controls{display:flex;justify-content:center}
-button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:13px;background:linear-gradient(#fff0c7,#e6bc78);color:#493223;box-shadow:0 4px 12px #0004;font:700 15px system-ui,sans-serif;cursor:pointer}
-@media(max-width:600px){body{padding:6px;gap:8px}.hint{padding:5px 7px;border-radius:7px;font-size:9px}button{font-size:13px}}
+button{
+  min-height:44px;
+  padding:10px 20px;
+  border:1px solid #e6c98d;
+  border-radius:13px;
+  background:linear-gradient(#fff0c7,#e6bc78);
+  color:#493223;
+  box-shadow:0 4px 12px #0004;
+  font:700 15px system-ui,sans-serif;
+  cursor:pointer;
+}
+@media(max-width:600px){
+  body{padding:6px;gap:8px}
+  .hint{padding:5px 7px;border-radius:7px;font-size:9px}
+  button{font-size:13px}
+}
 </style>
 </head>
 <body>
 <div class="scene">
-  <canvas id="game" width="960" height="540" aria-label="Рисуйте пальцем или мышкой на песочном столе"></canvas>
+  <canvas id="game" width="960" height="540"
+    aria-label="Рисуйте пальцем или мышкой на песочном столе"></canvas>
   <div class="hint" id="hint">Проведи пальцем или мышкой по песку</div>
 </div>
-<div class="controls"><button id="reset">Разровнять песок</button></div>
+<div class="controls">
+  <button id="reset">Разровнять песок</button>
+</div>
+
 <script>
 "use strict";
+
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 const hint=document.getElementById("hint");
+
 const pane={x:96,y:117,w:768,h:306};
 const radius=17;
+
 const layer=document.createElement("canvas");
-layer.width=pane.w;layer.height=pane.h;
+layer.width=pane.w;
+layer.height=pane.h;
 const sand=layer.getContext("2d");
-const floor=new Image(),table=new Image();
-let ready=false,drawing=false,visible=false,last=null;
-let pointer={x:0,y:0},particles=[];
+
+const floor=new Image();
+const table=new Image();
+
+let ready=false;
+let drawing=false;
+let visible=false;
+let last=null;
+let pointer={x:0,y:0};
 
 function load(image,path){
   return new Promise((resolve,reject)=>{
@@ -42,122 +109,218 @@ function load(image,path){
     image.src=path;
   });
 }
+
 function fillSand(){
-  const image=sand.createImageData(pane.w,pane.h),d=image.data;
-  for(let y=0;y<pane.h;y++)for(let x=0;x<pane.w;x++){
-    const i=(y*pane.w+x)*4;
-    const wave=7*Math.sin(x*.025+y*.011)+5*Math.sin(y*.047-x*.013);
-    const noise=(Math.random()-.5)*31,s=wave+noise;
-    d[i]=176+s;d[i+1]=139+s*.87;d[i+2]=96+s*.68;d[i+3]=251;
-  }
   sand.globalCompositeOperation="source-over";
-  sand.putImageData(image,0,0);
-  for(let i=0;i<23000;i++){
-    const x=Math.random()*pane.w,y=Math.random()*pane.h,n=.35+Math.random()*1.2;
-    sand.fillStyle=Math.random()>.49?"rgba(255,231,174,.23)":"rgba(75,47,31,.16)";
-    sand.fillRect(x,y,n,n);
+  sand.clearRect(0,0,pane.w,pane.h);
+
+  const image=sand.createImageData(pane.w,pane.h);
+  const d=image.data;
+
+  for(let y=0;y<pane.h;y++){
+    for(let x=0;x<pane.w;x++){
+      const i=(y*pane.w+x)*4;
+      const wave=7*Math.sin(x*.025+y*.011)
+                +5*Math.sin(y*.047-x*.013);
+      const noise=(Math.random()-.5)*31;
+      const shade=wave+noise;
+
+      d[i]=176+shade;
+      d[i+1]=139+shade*.87;
+      d[i+2]=96+shade*.68;
+      d[i+3]=255;
+    }
   }
-  particles=[];
+
+  sand.putImageData(image,0,0);
+
+  // Зернистость создаётся один раз и больше не меняется.
+  for(let i=0;i<23000;i++){
+    const x=Math.random()*pane.w;
+    const y=Math.random()*pane.h;
+    const size=.35+Math.random()*1.2;
+
+    sand.fillStyle=Math.random()>.49
+      ?"rgba(255,231,174,.23)"
+      :"rgba(75,47,31,.16)";
+
+    sand.fillRect(x,y,size,size);
+  }
 }
+
 function inside(x,y){
-  return x>=pane.x+5&&x<pane.x+pane.w-5&&y>=pane.y+5&&y<pane.y+pane.h-5;
+  return x>=pane.x+5
+      && x<pane.x+pane.w-5
+      && y>=pane.y+5
+      && y<pane.y+pane.h-5;
 }
+
 function position(event){
   const box=canvas.getBoundingClientRect();
-  return {x:(event.clientX-box.left)*960/box.width,y:(event.clientY-box.top)*540/box.height};
+  return {
+    x:(event.clientX-box.left)*canvas.width/box.width,
+    y:(event.clientY-box.top)*canvas.height/box.height
+  };
 }
-// Эту же функцию позже вызовет автоматическое рисование собаки.
+
+// Эту же функцию позже можно использовать для автоматического рисунка.
 function stamp(x,y,dx,dy){
   if(!inside(x,y))return;
-  const sx=x-pane.x,sy=y-pane.y;
-  const r=radius*(.92+Math.random()*.15);
-  const fade=sand.createRadialGradient(sx,sy,r*.14,sx,sy,r);
+
+  const sx=x-pane.x;
+  const sy=y-pane.y;
+  const r=radius;
+
+  const fade=sand.createRadialGradient(
+    sx,sy,r*.14,
+    sx,sy,r
+  );
   fade.addColorStop(0,"rgba(0,0,0,.98)");
   fade.addColorStop(.48,"rgba(0,0,0,.92)");
   fade.addColorStop(.78,"rgba(0,0,0,.38)");
   fade.addColorStop(1,"rgba(0,0,0,0)");
+
   sand.globalCompositeOperation="destination-out";
   sand.fillStyle=fade;
-  sand.beginPath();sand.arc(sx,sy,r,0,Math.PI*2);sand.fill();
+  sand.beginPath();
+  sand.arc(sx,sy,r,0,Math.PI*2);
+  sand.fill();
+
   sand.globalCompositeOperation="source-over";
-  const len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
-  for(const side of [-1,1])for(let j=0;j<3;j++){
-    const spread=r*(.76+Math.random()*.32);
-    const jitter=(Math.random()-.5)*6;
-    const px=sx+nx*spread*side+dx/len*jitter;
-    const py=sy+ny*spread*side+dy/len*jitter;
-    if(px<1||py<1||px>=pane.w-1||py>=pane.h-1)continue;
-    const size=1.2+Math.random()*2.6;
-    sand.fillStyle=side===1?"rgba(104,71,46,.56)":"rgba(235,195,133,.65)";
-    sand.beginPath();sand.ellipse(px,py,size,size*.65,0,0,Math.PI*2);sand.fill();
-    if(Math.random()<.34&&particles.length<350)particles.push({
-      x:pane.x+px,y:pane.y+py,
-      vx:nx*side*(1+Math.random()*1.4),
-      vy:ny*side*(1+Math.random()*1.4),
-      age:0,life:22+Math.random()*24,size:.8+Math.random()*1.5
-    });
+
+  const len=Math.hypot(dx,dy)||1;
+  const nx=-dy/len;
+  const ny=dx/len;
+
+  // Песчинки по краям следа сразу остаются на месте.
+  for(const side of [-1,1]){
+    for(let j=0;j<3;j++){
+      const spread=r*(.76+Math.random()*.32);
+      const jitter=(Math.random()-.5)*6;
+      const px=sx+nx*spread*side+dx/len*jitter;
+      const py=sy+ny*spread*side+dy/len*jitter;
+
+      if(px<1||py<1||px>=pane.w-1||py>=pane.h-1)continue;
+
+      const size=1.2+Math.random()*2.6;
+      sand.fillStyle=side===1
+        ?"rgba(104,71,46,.56)"
+        :"rgba(235,195,133,.65)";
+
+      sand.beginPath();
+      sand.ellipse(px,py,size,size*.65,0,0,Math.PI*2);
+      sand.fill();
+    }
   }
 }
+
 function moveBrush(from,to){
-  const dx=to.x-from.x,dy=to.y-from.y;
+  const dx=to.x-from.x;
+  const dy=to.y-from.y;
   const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));
+
   for(let i=0;i<=steps;i++){
     const t=i/steps;
     stamp(from.x+dx*t,from.y+dy*t,dx,dy);
   }
 }
+
 canvas.addEventListener("pointerdown",event=>{
   if(!ready)return;
-  const p=position(event);if(!inside(p.x,p.y))return;
-  event.preventDefault();canvas.setPointerCapture(event.pointerId);
-  drawing=true;visible=true;pointer=p;last=p;
+
+  const p=position(event);
+  if(!inside(p.x,p.y))return;
+
+  event.preventDefault();
+  canvas.setPointerCapture(event.pointerId);
+
+  drawing=true;
+  visible=true;
+  pointer=p;
+  last=p;
+
   stamp(p.x,p.y,1,0);
   hint.textContent="Посмотри, как светится след под песком";
 });
+
 canvas.addEventListener("pointermove",event=>{
   if(!ready)return;
-  const p=position(event);pointer=p;visible=inside(p.x,p.y);
+
+  const p=position(event);
+  pointer=p;
+  visible=inside(p.x,p.y);
+
   if(!drawing||!last)return;
-  event.preventDefault();moveBrush(last,p);last=p;
+
+  event.preventDefault();
+  moveBrush(last,p);
+  last=p;
 });
-function release(){drawing=false;last=null}
+
+function release(){
+  drawing=false;
+  last=null;
+}
+
 canvas.addEventListener("pointerup",release);
 canvas.addEventListener("pointercancel",release);
-canvas.addEventListener("pointerleave",()=>{if(!drawing)visible=false});
+canvas.addEventListener("pointerleave",()=>{
+  if(!drawing)visible=false;
+});
+
 document.getElementById("reset").addEventListener("click",()=>{
   if(!ready)return;
-  fillSand();hint.textContent="Проведи пальцем или мышкой по песку";
+  fillSand();
+  hint.textContent="Проведи пальцем или мышкой по песку";
 });
+
 function render(){
-  ctx.clearRect(0,0,960,540);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
   if(ready){
     ctx.drawImage(floor,0,0,960,540);
     ctx.drawImage(table,0,0,960,540);
     ctx.drawImage(layer,pane.x,pane.y);
-    ctx.save();
-    ctx.beginPath();ctx.rect(pane.x,pane.y,pane.w,pane.h);ctx.clip();
-    particles=particles.filter(p=>p.age<p.life);
-    for(const p of particles){
-      p.x+=p.vx;p.y+=p.vy;p.vx*=.92;p.vy*=.92;p.age++;
-      ctx.globalAlpha=Math.max(0,1-p.age/p.life);
-      ctx.fillStyle=p.age%3?"#d6ae75":"#795331";
-      ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
-    }
-    ctx.restore();
+
     if(visible&&inside(pointer.x,pointer.y)){
-      ctx.save();ctx.translate(pointer.x,pointer.y);ctx.rotate(-.55);
-      ctx.shadowColor="#3b261b77";ctx.shadowBlur=4;
-      ctx.fillStyle="#8d5b32";ctx.fillRect(-3,-34,6,26);
-      ctx.fillStyle="#d2b486";ctx.beginPath();
-      ctx.moveTo(-5,-8);ctx.lineTo(5,-8);ctx.lineTo(1,1);ctx.lineTo(-1,1);ctx.fill();
+      ctx.save();
+      ctx.translate(pointer.x,pointer.y);
+      ctx.rotate(-.55);
+
+      ctx.shadowColor="#3b261b77";
+      ctx.shadowBlur=4;
+
+      ctx.fillStyle="#8d5b32";
+      ctx.fillRect(-3,-34,6,26);
+
+      ctx.fillStyle="#d2b486";
+      ctx.beginPath();
+      ctx.moveTo(-5,-8);
+      ctx.lineTo(5,-8);
+      ctx.lineTo(1,1);
+      ctx.lineTo(-1,1);
+      ctx.fill();
+
       ctx.restore();
     }
   }
+
   requestAnimationFrame(render);
 }
-Promise.all([load(floor,"fon.png.png"),load(table,"stol.png.png")])
-  .then(()=>{fillSand();ready=true})
-  .catch(error=>{hint.textContent=error.message;console.error(error)});
+
+Promise.all([
+  load(floor,"fon.png.png"),
+  load(table,"stol.png.png")
+])
+.then(()=>{
+  fillSand();
+  ready=true;
+})
+.catch(error=>{
+  hint.textContent=error.message;
+  console.error(error);
+});
+
 requestAnimationFrame(render);
 </script>
 </body>
