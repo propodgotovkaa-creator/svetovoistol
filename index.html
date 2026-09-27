@@ -7,12 +7,7 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{
-  min-height:100svh;
-  background:#111536;
-  font-family:system-ui,Arial,sans-serif;
-  overflow:hidden;
-}
+body{min-height:100svh;background:#111536;font-family:system-ui,Arial,sans-serif;overflow:hidden}
 .scene{
   position:fixed;
   inset:0;
@@ -42,16 +37,7 @@ canvas{
   line-height:1.3;
   pointer-events:none;
 }
-.controls{
-  position:fixed;
-  z-index:2;
-  left:0;
-  right:0;
-  bottom:max(12px,env(safe-area-inset-bottom));
-  display:flex;
-  justify-content:center;
-  pointer-events:none;
-}
+.controls{position:fixed;z-index:2;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
 .controls button{pointer-events:auto}
 button{
   min-height:44px;
@@ -72,7 +58,7 @@ button{
 </head>
 <body>
 <div class="scene">
-  <canvas id="game"
+  <canvas id="game" width="960" height="540"
     aria-label="Рисуйте пальцем или мышкой на песочном столе"></canvas>
   <div class="hint" id="hint">Проведи пальцем или мышкой по песку</div>
 </div>
@@ -87,7 +73,7 @@ const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 const hint=document.getElementById("hint");
 
-// Песок почти доходит до светящейся каймы.
+// Светящаяся область нового квадратного стола в координатах canvas 960×540.
 const pane={x:265,y:77,w:425,h:379};
 const radius=17;
 
@@ -108,36 +94,21 @@ let visible=false;
 let last=null;
 let pointer={x:0,y:0};
 let flying=[];
-
-let phase="draw";
-let drawMs=0;
-let lastMoveAt=0;
-let lastFrame=performance.now();
-let magicStart=0;
-let dogVisible=false;
-let sparkles=[];
-
-let scale=1;
-let offsetX=0;
-let offsetY=0;
+let phase="draw",drawMs=0,lastMoveAt=0,lastFrame=performance.now();
+let magicStart=0,dogVisible=false,sparkles=[];
+let scale=1,offsetX=0,offsetY=0;
 
 function resize(){
   const box=canvas.getBoundingClientRect();
   const dpr=Math.min(window.devicePixelRatio||1,2);
-
   canvas.width=Math.round(box.width*dpr);
   canvas.height=Math.round(box.height*dpr);
-
+  // На узком экране приближаем стол, а лишний фон остаётся за краями.
   const logicalWidth=box.width<box.height?560:960;
-  scale=Math.min(
-    canvas.width/logicalWidth,
-    canvas.height/540
-  );
-
+  scale=Math.min(canvas.width/logicalWidth,canvas.height/540);
   offsetX=(canvas.width-960*scale)/2;
   offsetY=(canvas.height-540*scale)/2;
 }
-
 window.addEventListener("resize",resize);
 resize();
 
@@ -152,19 +123,11 @@ function load(image,path){
 function fillSand(){
   sand.globalCompositeOperation="source-over";
   sand.clearRect(0,0,pane.w,pane.h);
-
   const ratio=pane.w/pane.h;
   const sw=Math.min(texture.width,texture.height*ratio);
   const sh=sw/ratio;
-
-  sand.drawImage(
-    texture,
-    (texture.width-sw)/2,
-    (texture.height-sh)/2,
-    sw,sh,
-    0,0,pane.w,pane.h
-  );
-
+  sand.drawImage(texture,(texture.width-sw)/2,(texture.height-sh)/2,
+    sw,sh,0,0,pane.w,pane.h);
   flying=[];
 }
 
@@ -177,7 +140,6 @@ function inside(x,y){
 
 function position(event){
   const box=canvas.getBoundingClientRect();
-
   return {
     x:((event.clientX-box.left)*canvas.width/box.width-offsetX)/scale,
     y:((event.clientY-box.top)*canvas.height/box.height-offsetY)/scale
@@ -185,21 +147,12 @@ function position(event){
 }
 
 function drawBackground(){
-  const factor=Math.max(
-    canvas.width/floor.width,
-    canvas.height/floor.height
-  );
-  const w=floor.width*factor;
-  const h=floor.height*factor;
-
-  ctx.drawImage(
-    floor,
-    (canvas.width-w)/2,
-    (canvas.height-h)/2,
-    w,h
-  );
+  const factor=Math.max(canvas.width/floor.width,canvas.height/floor.height);
+  const w=floor.width*factor,h=floor.height*factor;
+  ctx.drawImage(floor,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
 }
 
+// Эту же функцию позже можно использовать для автоматического рисунка.
 function stamp(x,y,dx,dy){
   if(!inside(x,y))return;
 
@@ -228,52 +181,31 @@ function stamp(x,y,dx,dy){
   const nx=-dy/len;
   const ny=dx/len;
 
+  // Сгребаем песчинки в небольшие неровные валики у краёв следа.
   for(const side of [-1,1]){
     const bx=sx+nx*r*.84*side;
     const by=sy+ny*r*.84*side;
-
     if(bx<3||by<3||bx>pane.w-3||by>pane.h-3)continue;
-
-    const ridge=sand.createRadialGradient(
-      bx,by,1,
-      bx,by,7
-    );
+    const ridge=sand.createRadialGradient(bx,by,1,bx,by,7);
     ridge.addColorStop(0,"rgba(255,226,162,.46)");
     ridge.addColorStop(.55,"rgba(157,99,51,.21)");
     ridge.addColorStop(1,"rgba(105,64,37,0)");
-
     sand.fillStyle=ridge;
-    sand.beginPath();
-    sand.arc(bx,by,7,0,Math.PI*2);
-    sand.fill();
+    sand.beginPath();sand.arc(bx,by,7,0,Math.PI*2);sand.fill();
 
     for(let j=0;j<5;j++){
       const spread=r*(.77+Math.random()*.42);
       const along=(Math.random()-.5)*9;
       const px=sx+nx*spread*side+dx/len*along;
       const py=sy+ny*spread*side+dy/len*along;
-
       if(px<2||py<2||px>pane.w-2||py>pane.h-2)continue;
-
       const size=.45+Math.random()*1.25;
-      const color=Math.random()<.55
-        ?"#f8d693"
-        :Math.random()<.6?"#d39b57":"#9e693e";
-
+      const color=Math.random()<.55?"#f8d693":Math.random()<.6?"#d39b57":"#9e693e";
       sand.fillStyle=color;
       sand.fillRect(px,py,size,size*.8);
-
       if(Math.random()<.34&&flying.length<180){
-        flying.push({
-          x:px,
-          y:py,
-          vx:nx*side*(.6+Math.random()*1.4),
-          vy:ny*side*(.6+Math.random()*1.4),
-          size,
-          color,
-          age:0,
-          life:9+Math.random()*9
-        });
+        flying.push({x:px,y:py,vx:nx*side*(.6+Math.random()*1.4),
+          vy:ny*side*(.6+Math.random()*1.4),size,color,age:0,life:9+Math.random()*9});
       }
     }
   }
@@ -281,19 +213,10 @@ function stamp(x,y,dx,dy){
 
 function drawMovingGrains(){
   const remaining=[];
-
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(pane.x,pane.y,pane.w,pane.h);
-  ctx.clip();
-
+  ctx.beginPath();ctx.rect(pane.x,pane.y,pane.w,pane.h);ctx.clip();
   for(const p of flying){
-    p.x+=p.vx;
-    p.y+=p.vy;
-    p.vx*=.88;
-    p.vy*=.88;
-    p.age++;
-
+    p.x+=p.vx;p.y+=p.vy;p.vx*=.88;p.vy*=.88;p.age++;
     if(p.age>=p.life){
       if(p.x>1&&p.y>1&&p.x<pane.w-1&&p.y<pane.h-1){
         sand.fillStyle=p.color;
@@ -302,16 +225,10 @@ function drawMovingGrains(){
     }else{
       ctx.globalAlpha=Math.min(1,(p.life-p.age)/5);
       ctx.fillStyle=p.color;
-      ctx.fillRect(
-        pane.x+p.x,
-        pane.y+p.y,
-        p.size,
-        p.size*.8
-      );
+      ctx.fillRect(pane.x+p.x,pane.y+p.y,p.size,p.size*.8);
       remaining.push(p);
     }
   }
-
   ctx.restore();
   flying=remaining;
 }
@@ -322,134 +239,67 @@ function beginMagic(now){
   visible=false;
   magicStart=now;
   hint.textContent="Смотри, что появится!";
-
   const cx=offsetX+(pane.x+pane.w/2)*scale;
   const cy=offsetY+(pane.y+pane.h/2)*scale;
   const reach=Math.hypot(canvas.width,canvas.height)*.65;
-
   sparkles=Array.from({length:155},(_,i)=>{
-    const angle=i*Math.PI*(3-Math.sqrt(5))
-      +(Math.random()-.5)*.35;
-
-    return {
-      cx,
-      cy,
-      angle,
-      reach:reach*(.28+Math.random()*.8),
-      delay:Math.random()*.33,
-      size:(8+Math.random()*16)
-        *Math.max(1,Math.min(scale,2)),
-      seed:Math.random()*Math.PI*2,
-      small:i%3===0
-    };
+    const angle=i*Math.PI*(3-Math.sqrt(5))+(Math.random()-.5)*.35;
+    return {cx,cy,angle,reach:reach*(.28+Math.random()*.8),
+      delay:Math.random()*.33,size:(8+Math.random()*16)*Math.max(1,Math.min(scale,2)),
+      seed:Math.random()*Math.PI*2,small:i%3===0};
   });
 }
 
 function drawMagic(now){
   if(phase!=="magic")return;
-
   const elapsed=now-magicStart;
   const cx=offsetX+(pane.x+pane.w/2)*scale;
   const cy=offsetY+(pane.y+pane.h/2)*scale;
 
-  // Вспышка закрывает смену следа ребёнка на собаку.
+  // Свет закрывает смену детского следа на готовый рисунок.
   if(elapsed<1000){
-    const peak=Math.max(
-      0,
-      1-Math.abs(elapsed-650)/540
-    );
-    const glow=ctx.createRadialGradient(
-      cx,cy,0,
-      cx,cy,Math.max(canvas.width,canvas.height)*.55
-    );
-
-    glow.addColorStop(
-      0,
-      `rgba(255,250,215,${peak*.94})`
-    );
-    glow.addColorStop(
-      .45,
-      `rgba(255,224,149,${peak*.37})`
-    );
-    glow.addColorStop(
-      1,
-      "rgba(255,224,149,0)"
-    );
-
+    const peak=Math.max(0,1-Math.abs(elapsed-650)/540);
+    const glow=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(canvas.width,canvas.height)*.55);
+    glow.addColorStop(0,`rgba(255,250,215,${peak*.94})`);
+    glow.addColorStop(.45,`rgba(255,224,149,${peak*.37})`);
+    glow.addColorStop(1,"rgba(255,224,149,0)");
     ctx.fillStyle=glow;
     ctx.fillRect(0,0,canvas.width,canvas.height);
   }
 
   ctx.save();
-
   for(const p of sparkles){
-    const t=Math.max(
-      0,
-      Math.min(
-        1,
-        (elapsed/1450-p.delay)/(1-p.delay)
-      )
-    );
-
+    const t=Math.max(0,Math.min(1,(elapsed/1450-p.delay)/(1-p.delay)));
     if(t<=0||t>=1)continue;
-
-    const distance=p.reach
-      *(1-Math.pow(1-t,2.4));
-    const drift=Math.sin(t*7+p.seed)
-      *6*scale*t;
-
-    const x=p.cx
-      +Math.cos(p.angle)*distance
-      -Math.sin(p.angle)*drift;
-    const y=p.cy
-      +Math.sin(p.angle)*distance
-      +Math.cos(p.angle)*drift;
-
+    const distance=p.reach*(1-Math.pow(1-t,2.4));
+    const drift=Math.sin(t*7+p.seed)*6*scale*t;
+    const x=p.cx+Math.cos(p.angle)*distance-Math.sin(p.angle)*drift;
+    const y=p.cy+Math.sin(p.angle)*distance+Math.cos(p.angle)*drift;
     const alpha=Math.sin(Math.PI*t);
     ctx.globalAlpha=alpha*(p.small ? .75 : 1);
-
-    if(p.small){
+    if(p.small||!sparkle.naturalWidth){
       ctx.fillStyle="#fff2bd";
       ctx.shadowColor="#ffe9ad";
       ctx.shadowBlur=p.size*.8;
-
       ctx.beginPath();
       ctx.arc(x,y,p.size*.09,0,Math.PI*2);
       ctx.fill();
     }else{
-      ctx.drawImage(
-        sparkle,
-        x-p.size/2,
-        y-p.size/2,
-        p.size,p.size
-      );
+      ctx.drawImage(sparkle,x-p.size/2,y-p.size/2,p.size,p.size);
     }
   }
-
   ctx.restore();
-
-  if(elapsed>1700){
-    phase="dog";
-    sparkles=[];
-    hint.textContent="Кто появился? Собака!";
-  }
+  if(elapsed>1700){phase="dog";sparkles=[];hint.textContent="Кто появился? Собака!";}
 }
 
 function moveBrush(from,to){
   const dx=to.x-from.x;
   const dy=to.y-from.y;
-  const steps=Math.max(
-    1,
-    Math.ceil(Math.hypot(dx,dy)/4)
-  );
+  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));
 
   for(let i=0;i<=steps;i++){
     const t=i/steps;
-    stamp(
-      from.x+dx*t,
-      from.y+dy*t,
-      dx,dy
-    );
+    stamp(from.x+dx*t,from.y+dy*t,dx,dy);
   }
 }
 
@@ -482,12 +332,10 @@ canvas.addEventListener("pointermove",event=>{
   if(!drawing||!last)return;
 
   event.preventDefault();
-
   if(Math.hypot(p.x-last.x,p.y-last.y)>.7){
     moveBrush(last,p);
     lastMoveAt=performance.now();
   }
-
   last=p;
 });
 
@@ -504,90 +352,43 @@ canvas.addEventListener("pointerleave",()=>{
 
 document.getElementById("reset").addEventListener("click",()=>{
   if(!ready)return;
-
   fillSand();
-  phase="draw";
-  drawMs=0;
-  drawing=false;
-  visible=false;
-  dogVisible=false;
-  sparkles=[];
+  phase="draw";drawMs=0;drawing=false;visible=false;
+  dogVisible=false;sparkles=[];
   hint.textContent="Проведи пальцем или мышкой по песку";
 });
 
 function render(now){
   const delta=Math.min(50,now-lastFrame);
   lastFrame=now;
-
-  // Считаем время, пока ребёнок двигает кисточкой.
-  if(
-    ready
-    &&phase==="draw"
-    &&drawing
-    &&now-lastMoveAt<220
-  ){
+  if(ready&&phase==="draw"&&drawing&&now-lastMoveAt<220){
     drawMs+=delta;
-
-    if(drawMs>=3500){
-      beginMagic(now);
-    }
+    if(drawMs>=3500)beginMagic(now);
   }
-
-  // Меняем только рисунок на песке во время вспышки.
-  if(
-    phase==="magic"
-    &&!dogVisible
-    &&now-magicStart>=620
-  ){
+  if(phase==="magic"&&!dogVisible&&now-magicStart>=620){
     fillSand();
     dogVisible=true;
   }
-
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   if(ready){
     drawBackground();
-
     ctx.save();
     ctx.translate(offsetX,offsetY);
     ctx.scale(scale,scale);
-
     ctx.drawImage(table,0,0,960,540);
-
     ctx.save();
     ctx.beginPath();
-    ctx.roundRect(
-      pane.x,pane.y,pane.w,pane.h,7
-    );
+    ctx.roundRect(pane.x,pane.y,pane.w,pane.h,7);
     ctx.clip();
-
     ctx.drawImage(layer,pane.x,pane.y);
-
     if(dogVisible){
-      const size=Math.min(
-        pane.w*.93,
-        pane.h*.94
-      );
-      const alpha=phase==="magic"
-        ?Math.min(
-            1,
-            Math.max(
-              0,
-              (now-magicStart-620)/430
-            )
-          )
-        :1;
-
+      const size=Math.min(pane.w*.93,pane.h*.94);
+      const alpha=phase==="magic"?Math.min(1,Math.max(0,(now-magicStart-620)/430)):1;
       ctx.globalAlpha=alpha;
-      ctx.drawImage(
-        dog,
-        pane.x+(pane.w-size)/2,
-        pane.y+(pane.h-size)/2,
-        size,size
-      );
+      ctx.drawImage(dog,pane.x+(pane.w-size)/2,pane.y+(pane.h-size)/2,size,size);
       ctx.globalAlpha=1;
     }
-
     ctx.restore();
     drawMovingGrains();
 
@@ -607,11 +408,11 @@ function render(now){
       ctx.moveTo(-5,-8);
       ctx.lineTo(5,-8);
       ctx.lineTo(1,1);
+      ctx.lineTo(-1,1);
       ctx.fill();
 
       ctx.restore();
     }
-
     ctx.restore();
     drawMagic(now);
   }
@@ -623,8 +424,7 @@ Promise.all([
   load(floor,"fon1.png"),
   load(table,"stol1.png"),
   load(texture,"pesok.png"),
-  load(dog,"gitkeep/dog.png"),
-  load(sparkle,"gitkeep/blik.png")
+  load(dog,"gitkeep/dog.png")
 ])
 .then(()=>{
   fillSand();
@@ -634,6 +434,7 @@ Promise.all([
   hint.textContent=error.message;
   console.error(error);
 });
+load(sparkle,"blik.png").catch(error=>console.warn(error));
 
 requestAnimationFrame(render);
 </script>
