@@ -15,7 +15,7 @@ body{
   justify-content:center;
   gap:12px;
   padding:12px;
-  background:#302721;
+  background:#111536;
   font-family:system-ui,Arial,sans-serif;
 }
 .scene{
@@ -85,7 +85,8 @@ const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 const hint=document.getElementById("hint");
 
-const pane={x:96,y:117,w:768,h:306};
+// Светящаяся область нового стола.
+const pane={x:261,y:72,w:434,h:390};
 const radius=17;
 
 const layer=document.createElement("canvas");
@@ -163,7 +164,6 @@ function position(event){
   };
 }
 
-// Эту же функцию позже можно использовать для автоматического рисунка.
 function stamp(x,y,dx,dy){
   if(!inside(x,y))return;
 
@@ -280,7 +280,13 @@ function render(){
   if(ready){
     ctx.drawImage(floor,0,0,960,540);
     ctx.drawImage(table,0,0,960,540);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(pane.x,pane.y,pane.w,pane.h,7);
+    ctx.clip();
     ctx.drawImage(layer,pane.x,pane.y);
+    ctx.restore();
 
     if(visible&&inside(pointer.x,pointer.y)){
       ctx.save();
@@ -309,8 +315,8 @@ function render(){
 }
 
 Promise.all([
-  load(floor,"fon.png.png"),
-  load(table,"stol.png.png")
+  load(floor,"fon1.png"),
+  load(table,"stol1.png")
 ])
 .then(()=>{
   fillSand();
