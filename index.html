@@ -7,12 +7,7 @@
 <style>
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
-body{
-  min-height:100svh;
-  background:#111536;
-  font-family:system-ui,Arial,sans-serif;
-  overflow:hidden;
-}
+body{min-height:100svh;background:#111536;font-family:system-ui,Arial,sans-serif;overflow:hidden}
 .scene{
   position:fixed;
   inset:0;
@@ -42,48 +37,8 @@ canvas{
   line-height:1.3;
   pointer-events:none;
 }
-.controls{
-  position:fixed;
-  z-index:2;
-  left:0;
-  right:0;
-  bottom:max(12px,env(safe-area-inset-bottom));
-  display:flex;
-  justify-content:center;
-  pointer-events:none;
-}
+.controls{position:fixed;z-index:2;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
 .controls button{pointer-events:auto}
-.pattern{
-  position:absolute;
-  z-index:2;
-  left:clamp(8px,2vw,24px);
-  top:50%;
-  transform:translateY(-50%);
-  width:clamp(82px,15vw,150px);
-  padding:10px;
-  border:1px solid #e6c88f;
-  border-radius:17px;
-  background:#fff0cfed;
-  color:#543b2b;
-  text-align:center;
-  box-shadow:0 8px 25px #080c3099;
-  pointer-events:none;
-}
-.pattern svg{
-  display:block;
-  width:100%;
-  height:auto;
-  stroke:#a46638;
-  stroke-width:7;
-  stroke-linecap:round;
-  stroke-linejoin:round;
-  fill:none;
-}
-.pattern strong{display:block;font-size:clamp(11px,1.4vw,16px)}
-.pattern small{display:block;font-size:clamp(9px,1vw,12px)}
-.pattern.hidden{display:none}
-#next{display:none}
-#next.show{display:block}
 button{
   min-height:44px;
   padding:10px 20px;
@@ -98,32 +53,17 @@ button{
 @media(max-width:600px){
   .hint{padding:5px 7px;border-radius:7px;font-size:9px}
   button{font-size:13px}
-  .pattern{
-    top:52%;
-    left:5px;
-    padding:5px;
-    border-radius:10px;
-    width:72px;
-  }
-  .pattern strong{font-size:10px}
-  .pattern small{font-size:8px}
 }
 </style>
 </head>
 <body>
 <div class="scene">
-  <canvas id="game"
+  <canvas id="game" width="960" height="540"
     aria-label="Рисуйте пальцем или мышкой на песочном столе"></canvas>
   <div class="hint" id="hint">Проведи пальцем или мышкой по песку</div>
-  <div class="pattern" id="pattern" aria-label="Образец рисунка">
-    <strong id="patternName"></strong>
-    <svg id="patternSvg" viewBox="0 0 120 90" aria-hidden="true"></svg>
-    <small id="patternHelp">Нарисуй на песке</small>
-  </div>
 </div>
 <div class="controls">
   <button id="reset">Разровнять песок</button>
-  <button id="next">Следующий рисунок</button>
 </div>
 
 <script>
@@ -132,49 +72,8 @@ button{
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 const hint=document.getElementById("hint");
-const patternBox=document.getElementById("pattern");
-const patternName=document.getElementById("patternName");
-const patternSvg=document.getElementById("patternSvg");
-const patternHelp=document.getElementById("patternHelp");
-const nextButton=document.getElementById("next");
 
-const patterns={
-  wave:{
-    name:"Волна",
-    svg:'<path d="M8 46 Q20 14 34 46 T60 46 T86 46 T112 46"/>'
-  },
-  circle:{
-    name:"Солнышко",
-    svg:'<circle cx="60" cy="45" r="24"/><path d="M60 5v8 M60 77v8 M20 45h8 M92 45h8 M32 17l6 6 M82 67l6 6 M88 17l-6 6 M38 67l-6 6"/>'
-  },
-  smile:{
-    name:"Улыбка",
-    svg:'<path d="M14 26 Q60 88 106 26"/>'
-  },
-  zigzag:{
-    name:"Зигзаг",
-    svg:'<path d="M10 72 L35 18 L60 72 L85 18 L110 72"/>'
-  },
-  arch:{
-    name:"Дуга",
-    svg:'<path d="M12 72 Q60 -16 108 72"/>'
-  }
-};
-
-const rounds=[
-  {name:"Собака",file:["gitkeep/dog.png","sobaka.png"],pattern:"smile"},
-  {name:"Самолёт",file:["gitkeep/samolet.png","samolet.png"],pattern:"wave"},
-  {name:"Сундук",file:["gitkeep/sunduk.png","sunduk.png"],pattern:"circle"},
-  {name:"Сова",file:["gitkeep/sova.png","sova.png"],pattern:"zigzag"},
-  {name:"Сумка",file:["gitkeep/sumka.png","sumka.png"],pattern:"arch"},
-  {name:"Санки",file:["gitkeep/sanki.png","sanki.png"],pattern:"wave"},
-  {name:"Сом",file:["gitkeep/som.png","som.png"],pattern:"circle"},
-  {name:"Самокат",file:["gitkeep/samokat.png","samokat.png"],pattern:"smile"},
-  {name:"Сапоги",file:["gitkeep/sapogi.png","sapogi.png"],pattern:"zigzag"}
-];
-
-let roundIndex=0;
-
+// Светящаяся область нового квадратного стола в координатах canvas 960×540.
 const pane={x:265,y:77,w:425,h:379};
 const radius=17;
 
@@ -186,6 +85,7 @@ const sand=layer.getContext("2d");
 const floor=new Image();
 const table=new Image();
 const texture=new Image();
+const dog=new Image();
 const sparkle=new Image();
 
 let ready=false;
@@ -194,162 +94,21 @@ let visible=false;
 let last=null;
 let pointer={x:0,y:0};
 let flying=[];
-
-let phase="draw";
-let magicStart=0;
-let oldMarks=null;
-let stroke=[];
-let retryAt=0;
-
-const traces=[
-  {start:0,duration:.29,
-   points:[[180,340],[225,270],[290,230],[340,280],[335,340],[295,405],[220,445]]},
-  {start:.07,duration:.30,
-   points:[[250,445],[185,445],[155,500],[185,550],[250,555],[310,520],[340,480]]},
-  {start:.12,duration:.32,
-   points:[[335,295],[410,285],[485,310],[560,350],[650,390]]},
-  {start:.25,duration:.29,
-   points:[[585,360],[640,400],[690,475],[685,535],[650,565],[605,525],[570,460],[565,390]]},
-  {start:.33,duration:.34,
-   points:[[320,535],[365,590],[385,685],[385,780],[370,880],[320,985],[265,1030],[320,1050],[385,1020],[430,945]]},
-  {start:.43,duration:.32,
-   points:[[385,775],[470,810],[520,875],[545,965],[520,1030],[570,1050],[620,1035],[650,930]]},
-  {start:.46,duration:.37,
-   points:[[690,600],[780,620],[875,630],[955,615],[1030,560],[1080,470],[1075,390],[1035,345]]},
-  {start:.59,duration:.28,
-   points:[[645,920],[750,915],[840,865],[880,915],[915,955],[885,1025],[945,1040]]},
-  {start:.68,duration:.25,
-   points:[[930,665],[980,750],[1030,855],[1065,960],[1035,1030],[1080,1050],[1130,1030]]},
-  {start:.08,duration:.13,points:[[350,390],[335,390]]},
-  {start:.22,duration:.12,points:[[445,445],[440,445]]},
-  {start:.18,duration:.12,points:[[200,490],[200,490]]}
-];
-
-const picturePaths=[
-  null,
-
-  [ // Самолёт
-    [[325,880],[430,790],[540,675],[670,540],[810,410],[960,285],[1050,260],[1065,330],[985,425],[845,545],[700,675],[560,805],[425,920]],
-    [[650,560],[525,475],[380,390],[250,300],[290,275],[440,340],[615,435]],
-    [[735,675],[860,780],[990,940],[1070,1010],[1040,930],[900,735]],
-    [[425,805],[275,735],[225,700],[285,780],[400,875]],
-    [[500,900],[530,1005],[490,1045],[445,970]],
-    [[650,650],[730,570],[815,490],[910,405]]
-  ],
-
-  [ // Сундук
-    [[180,565],[190,420],[275,275],[380,220],[510,250],[700,255],[900,270],[1040,330],[1100,505]],
-    [[190,565],[430,625],[800,680],[1110,590]],
-    [[185,590],[190,920],[470,995],[830,1060],[1090,940],[1100,610]],
-    [[440,260],[380,430],[390,580]],
-    [[830,270],[790,430],[820,620]],
-    [[470,640],[485,755],[525,770],[555,685]],
-    [[205,950],[460,980],[790,1045],[1080,955]]
-  ],
-
-  [ // Сова
-    [[300,190],[290,75],[380,175],[520,190],[650,195],[800,180],[940,75],[950,250]],
-    [[300,190],[220,340],[220,520],[285,630],[340,735],[400,930],[560,1020],[750,1020],[900,920],[970,700],[1000,500],[950,250]],
-    [[350,380],[410,295],[500,315],[560,395],[530,500],[440,530],[350,460],[350,380]],
-    [[700,380],[765,295],[855,315],[910,400],[870,510],[775,530],[700,450],[700,380]],
-    [[590,475],[640,555],[690,475]],
-    [[300,650],[180,810],[210,900],[345,800],[405,650]],
-    [[900,650],[1030,815],[1010,900],[880,805]],
-    [[470,1020],[445,1150],[570,1150]],
-    [[790,1020],[760,1150],[870,1150]]
-  ],
-
-  [ // Сумка
-    [[380,500],[390,340],[450,210],[560,130],[675,130],[790,210],[850,360],[870,510]],
-    [[210,505],[250,1040],[380,1110],[930,1110],[1060,1040],[1080,515]],
-    [[210,505],[385,475],[870,475],[1080,515]],
-    [[415,485],[415,600],[475,610],[475,510]],
-    [[815,505],[815,605],[875,610],[875,515]],
-    [[430,720],[840,720],[850,1000],[425,1000],[430,720]]
-  ],
-
-  [ // Санки
-    [[250,500],[395,485],[535,465],[670,450],[800,430],[940,425],[1080,505]],
-    [[300,565],[490,555],[680,535],[870,515],[1050,550]],
-    [[315,620],[510,605],[710,590],[900,570],[1080,610]],
-    [[405,650],[340,865],[470,900],[650,900],[800,900],[1000,865],[1095,765]],
-    [[540,665],[545,805]],
-    [[835,635],[855,800]],
-    [[170,360],[200,470],[170,650],[95,780],[155,870]]
-  ],
-
-  [ // Сом
-    [[155,700],[260,555],[435,500],[660,510],[860,550],[1050,535],[1150,350]],
-    [[155,700],[330,760],[510,780],[700,820],[880,785],[1050,700],[1150,895]],
-    [[535,505],[650,330],[710,285],[755,510]],
-    [[280,750],[220,850],[125,940]],
-    [[350,770],[435,925],[530,985]],
-    [[540,785],[600,875],[670,840]],
-    [[1040,700],[1150,850],[1180,690],[1160,480]]
-  ],
-
-  [ // Самокат
-    [[200,230],[400,235],[620,250],[780,245]],
-    [[445,255],[400,420],[355,630],[350,820]],
-    [[355,820],[465,985],[695,1000],[955,995]],
-    [[270,1020],[285,920],[370,875],[455,920],[470,1025],[380,1100],[285,1060],[270,1020]],
-    [[900,1010],[920,915],[1035,865],[1120,950],[1090,1060],[995,1100],[900,1010]],
-    [[420,815],[510,955]],
-    [[480,1010],[710,1010],[930,1015]]
-  ],
-
-  [ // Сапоги
-    [[280,255],[450,235],[560,255],[535,460],[545,750],[605,925],[565,1010],[340,1055],[130,1020],[120,925],[285,860],[310,620],[280,255]],
-    [[325,320],[500,330]],
-    [[150,965],[320,1005],[540,985]],
-    [[780,255],[965,235],[1090,255],[1065,490],[1070,755],[1130,930],[1085,1010],[835,1055],[690,1015],[690,920],[790,860],[800,610],[780,255]],
-    [[820,325],[1040,330]],
-    [[710,970],[850,1010],[1090,990]]
-  ]
-];
-
-function activeTraces(){
-  if(roundIndex===0)return traces;
-
-  const paths=picturePaths[roundIndex];
-
-  return paths.map((points,i)=>({
-    points,
-    start:i/paths.length*.68,
-    duration:.31
-  }));
-}
-
-const reveal=document.createElement("canvas");
-reveal.width=reveal.height=512;
-const revealCtx=reveal.getContext("2d");
-
-const mask=document.createElement("canvas");
-mask.width=mask.height=512;
-const maskCtx=mask.getContext("2d");
-
-let scale=1;
-let offsetX=0;
-let offsetY=0;
+let phase="draw",drawMs=0,lastMoveAt=0,lastFrame=performance.now();
+let magicStart=0,dogVisible=false,sparkles=[];
+let scale=1,offsetX=0,offsetY=0;
 
 function resize(){
   const box=canvas.getBoundingClientRect();
   const dpr=Math.min(window.devicePixelRatio||1,2);
-
   canvas.width=Math.round(box.width*dpr);
   canvas.height=Math.round(box.height*dpr);
-
+  // На узком экране приближаем стол, а лишний фон остаётся за краями.
   const logicalWidth=box.width<box.height?560:960;
-
-  scale=Math.min(
-    canvas.width/logicalWidth,
-    canvas.height/540
-  );
-
+  scale=Math.min(canvas.width/logicalWidth,canvas.height/540);
   offsetX=(canvas.width-960*scale)/2;
   offsetY=(canvas.height-540*scale)/2;
 }
-
 window.addEventListener("resize",resize);
 resize();
 
@@ -361,265 +120,15 @@ function load(image,path){
   });
 }
 
-async function loadFirst(image,paths){
-  let lastError;
-
-  for(const path of paths){
-    try{
-      await load(image,path);
-      return;
-    }catch(error){
-      lastError=error;
-    }
-  }
-
-  throw lastError;
-}
-
 function fillSand(){
   sand.globalCompositeOperation="source-over";
   sand.clearRect(0,0,pane.w,pane.h);
-
   const ratio=pane.w/pane.h;
-  const sw=Math.min(
-    texture.width,
-    texture.height*ratio
-  );
+  const sw=Math.min(texture.width,texture.height*ratio);
   const sh=sw/ratio;
-
-  sand.drawImage(
-    texture,
-    (texture.width-sw)/2,
-    (texture.height-sh)/2,
-    sw,sh,
-    0,0,pane.w,pane.h
-  );
-
+  sand.drawImage(texture,(texture.width-sw)/2,(texture.height-sh)/2,
+    sw,sh,0,0,pane.w,pane.h);
   flying=[];
-}
-
-function showPattern(){
-  const kind=rounds[roundIndex].pattern;
-  const pattern=patterns[kind];
-
-  patternName.textContent=pattern.name;
-  patternSvg.innerHTML=pattern.svg;
-
-  patternHelp.textContent=kind==="circle"
-    ?"Обведи круг"
-    :"Одним движением";
-
-  patternBox.classList.remove("hidden");
-  nextButton.classList.remove("show");
-}
-
-function resample(points,count=32){
-  const distances=[0];
-
-  for(let i=1;i<points.length;i++){
-    distances.push(
-      distances[i-1]+Math.hypot(
-        points[i].x-points[i-1].x,
-        points[i].y-points[i-1].y
-      )
-    );
-  }
-
-  const total=distances[distances.length-1];
-  if(total<1)return [];
-
-  const result=[];
-  let j=1;
-
-  for(let i=0;i<count;i++){
-    const target=total*i/(count-1);
-
-    while(
-      j<distances.length-1
-      &&distances[j]<target
-    ){
-      j++;
-    }
-
-    const d=distances[j]-distances[j-1];
-    const t=d
-      ?(target-distances[j-1])/d
-      :0;
-
-    result.push({
-      x:points[j-1].x
-        +(points[j].x-points[j-1].x)*t,
-
-      y:points[j-1].y
-        +(points[j].y-points[j-1].y)*t
-    });
-  }
-
-  return result;
-}
-
-function shapePath(kind,count=32){
-  return Array.from({length:count},(_,i)=>{
-    const t=i/(count-1);
-
-    if(kind==="wave"){
-      return {
-        x:t,
-        y:.5+.45*Math.sin(t*Math.PI*4)
-      };
-    }
-
-    if(kind==="zigzag"){
-      return {
-        x:t,
-        y:.5-.45*Math.cos(t*Math.PI*4)
-      };
-    }
-
-    const arc=1-Math.pow(2*t-1,2);
-
-    return {
-      x:t,
-      y:kind==="smile"
-        ?.1+.8*arc
-        :.9-.8*arc
-    };
-  });
-}
-
-function matchesPattern(points,kind){
-  if(points.length<5)return false;
-
-  const minX=Math.min(...points.map(p=>p.x));
-  const maxX=Math.max(...points.map(p=>p.x));
-  const minY=Math.min(...points.map(p=>p.y));
-  const maxY=Math.max(...points.map(p=>p.y));
-
-  const w=maxX-minX;
-  const h=maxY-minY;
-
-  if(w<40||h<16)return false;
-
-  const sampled=resample(points);
-
-  const length=points.slice(1).reduce(
-    (sum,p,i)=>
-      sum+Math.hypot(
-        p.x-points[i].x,
-        p.y-points[i].y
-      ),
-    0
-  );
-
-  if(length<70)return false;
-
-  const first=points[0];
-  const last=points[points.length-1];
-
-  if(kind==="circle"){
-    if(w/h<.45||w/h>2.2)return false;
-
-    const gap=Math.hypot(
-      first.x-last.x,
-      first.y-last.y
-    );
-
-    const cx=(minX+maxX)/2;
-    const cy=(minY+maxY)/2;
-    let sweep=0;
-
-    for(let i=1;i<sampled.length;i++){
-      const a=Math.atan2(
-        sampled[i-1].y-cy,
-        sampled[i-1].x-cx
-      );
-
-      const b=Math.atan2(
-        sampled[i].y-cy,
-        sampled[i].x-cx
-      );
-
-      sweep+=Math.atan2(
-        Math.sin(b-a),
-        Math.cos(b-a)
-      );
-    }
-
-    return Math.abs(sweep)>4.1
-      &&gap<Math.hypot(w,h)*.75;
-  }
-
-  if(w/h<.75)return false;
-
-  const normalized=sampled.map(p=>({
-    x:(p.x-minX)/w,
-    y:(p.y-minY)/h
-  }));
-
-  const oriented=first.x<=last.x
-    ?normalized
-    :[...normalized].reverse();
-
-  const ends=(
-    oriented[2].y
-    +oriented[29].y
-  )/2;
-
-  const middle=(
-    oriented[13].y
-    +oriented[16].y
-    +oriented[19].y
-  )/3;
-
-  if(kind==="smile"){
-    return middle-ends>.20;
-  }
-
-  if(kind==="arch"){
-    return ends-middle>.20;
-  }
-
-  let turns=0;
-  let direction=0;
-  let extreme=oriented[0].y;
-
-  for(let i=1;i<oriented.length;i++){
-    const y=oriented[i].y;
-
-    if(direction>=0){
-      extreme=Math.max(extreme,y);
-
-      if(extreme-y>.23){
-        turns++;
-        direction=-1;
-        extreme=y;
-      }
-    }else{
-      extreme=Math.min(extreme,y);
-
-      if(y-extreme>.23){
-        turns++;
-        direction=1;
-        extreme=y;
-      }
-    }
-  }
-
-  if(turns>=2)return true;
-
-  const model=shapePath(kind);
-
-  const score=list=>
-    list.reduce(
-      (sum,p,i)=>
-        sum+Math.hypot(
-          p.x-model[i].x,
-          p.y-model[i].y
-        ),
-      0
-    )/list.length;
-
-  return score(oriented)<.43;
 }
 
 function inside(x,y){
@@ -631,39 +140,19 @@ function inside(x,y){
 
 function position(event){
   const box=canvas.getBoundingClientRect();
-
   return {
-    x:(
-      (event.clientX-box.left)
-      *canvas.width/box.width
-      -offsetX
-    )/scale,
-
-    y:(
-      (event.clientY-box.top)
-      *canvas.height/box.height
-      -offsetY
-    )/scale
+    x:((event.clientX-box.left)*canvas.width/box.width-offsetX)/scale,
+    y:((event.clientY-box.top)*canvas.height/box.height-offsetY)/scale
   };
 }
 
 function drawBackground(){
-  const factor=Math.max(
-    canvas.width/floor.width,
-    canvas.height/floor.height
-  );
-
-  const w=floor.width*factor;
-  const h=floor.height*factor;
-
-  ctx.drawImage(
-    floor,
-    (canvas.width-w)/2,
-    (canvas.height-h)/2,
-    w,h
-  );
+  const factor=Math.max(canvas.width/floor.width,canvas.height/floor.height);
+  const w=floor.width*factor,h=floor.height*factor;
+  ctx.drawImage(floor,(canvas.width-w)/2,(canvas.height-h)/2,w,h);
 }
 
+// Эту же функцию позже можно использовать для автоматического рисунка.
 function stamp(x,y,dx,dy){
   if(!inside(x,y))return;
 
@@ -675,7 +164,6 @@ function stamp(x,y,dx,dy){
     sx,sy,r*.14,
     sx,sy,r
   );
-
   fade.addColorStop(0,"rgba(0,0,0,.98)");
   fade.addColorStop(.48,"rgba(0,0,0,.92)");
   fade.addColorStop(.78,"rgba(0,0,0,.38)");
@@ -693,94 +181,31 @@ function stamp(x,y,dx,dy){
   const nx=-dy/len;
   const ny=dx/len;
 
+  // Сгребаем песчинки в небольшие неровные валики у краёв следа.
   for(const side of [-1,1]){
     const bx=sx+nx*r*.84*side;
     const by=sy+ny*r*.84*side;
-
-    if(
-      bx<3||by<3
-      ||bx>pane.w-3
-      ||by>pane.h-3
-    )continue;
-
-    const ridge=sand.createRadialGradient(
-      bx,by,1,
-      bx,by,7
-    );
-
-    ridge.addColorStop(
-      0,
-      "rgba(255,226,162,.46)"
-    );
-
-    ridge.addColorStop(
-      .55,
-      "rgba(157,99,51,.21)"
-    );
-
-    ridge.addColorStop(
-      1,
-      "rgba(105,64,37,0)"
-    );
-
+    if(bx<3||by<3||bx>pane.w-3||by>pane.h-3)continue;
+    const ridge=sand.createRadialGradient(bx,by,1,bx,by,7);
+    ridge.addColorStop(0,"rgba(255,226,162,.46)");
+    ridge.addColorStop(.55,"rgba(157,99,51,.21)");
+    ridge.addColorStop(1,"rgba(105,64,37,0)");
     sand.fillStyle=ridge;
-    sand.beginPath();
-    sand.arc(bx,by,7,0,Math.PI*2);
-    sand.fill();
+    sand.beginPath();sand.arc(bx,by,7,0,Math.PI*2);sand.fill();
 
     for(let j=0;j<5;j++){
-      const spread=r*(
-        .77+Math.random()*.42
-      );
-
-      const along=(
-        Math.random()-.5
-      )*9;
-
-      const px=sx
-        +nx*spread*side
-        +dx/len*along;
-
-      const py=sy
-        +ny*spread*side
-        +dy/len*along;
-
-      if(
-        px<2||py<2
-        ||px>pane.w-2
-        ||py>pane.h-2
-      )continue;
-
-      const size=.45
-        +Math.random()*1.25;
-
-      const color=Math.random()<.55
-        ?"#f8d693"
-        :Math.random()<.6
-          ?"#d39b57"
-          :"#9e693e";
-
+      const spread=r*(.77+Math.random()*.42);
+      const along=(Math.random()-.5)*9;
+      const px=sx+nx*spread*side+dx/len*along;
+      const py=sy+ny*spread*side+dy/len*along;
+      if(px<2||py<2||px>pane.w-2||py>pane.h-2)continue;
+      const size=.45+Math.random()*1.25;
+      const color=Math.random()<.55?"#f8d693":Math.random()<.6?"#d39b57":"#9e693e";
       sand.fillStyle=color;
-      sand.fillRect(
-        px,py,size,size*.8
-      );
-
-      if(
-        Math.random()<.34
-        &&flying.length<180
-      ){
-        flying.push({
-          x:px,
-          y:py,
-          vx:nx*side
-            *(.6+Math.random()*1.4),
-          vy:ny*side
-            *(.6+Math.random()*1.4),
-          size,
-          color,
-          age:0,
-          life:9+Math.random()*9
-        });
+      sand.fillRect(px,py,size,size*.8);
+      if(Math.random()<.34&&flying.length<180){
+        flying.push({x:px,y:py,vx:nx*side*(.6+Math.random()*1.4),
+          vy:ny*side*(.6+Math.random()*1.4),size,color,age:0,life:9+Math.random()*9});
       }
     }
   }
@@ -788,52 +213,22 @@ function stamp(x,y,dx,dy){
 
 function drawMovingGrains(){
   const remaining=[];
-
   ctx.save();
-  ctx.beginPath();
-  ctx.rect(
-    pane.x,pane.y,
-    pane.w,pane.h
-  );
-  ctx.clip();
-
+  ctx.beginPath();ctx.rect(pane.x,pane.y,pane.w,pane.h);ctx.clip();
   for(const p of flying){
-    p.x+=p.vx;
-    p.y+=p.vy;
-    p.vx*=.88;
-    p.vy*=.88;
-    p.age++;
-
+    p.x+=p.vx;p.y+=p.vy;p.vx*=.88;p.vy*=.88;p.age++;
     if(p.age>=p.life){
-      if(
-        p.x>1&&p.y>1
-        &&p.x<pane.w-1
-        &&p.y<pane.h-1
-      ){
+      if(p.x>1&&p.y>1&&p.x<pane.w-1&&p.y<pane.h-1){
         sand.fillStyle=p.color;
-        sand.fillRect(
-          p.x,p.y,
-          p.size,p.size*.8
-        );
+        sand.fillRect(p.x,p.y,p.size,p.size*.8);
       }
     }else{
-      ctx.globalAlpha=Math.min(
-        1,
-        (p.life-p.age)/5
-      );
-
+      ctx.globalAlpha=Math.min(1,(p.life-p.age)/5);
       ctx.fillStyle=p.color;
-      ctx.fillRect(
-        pane.x+p.x,
-        pane.y+p.y,
-        p.size,
-        p.size*.8
-      );
-
+      ctx.fillRect(pane.x+p.x,pane.y+p.y,p.size,p.size*.8);
       remaining.push(p);
     }
   }
-
   ctx.restore();
   flying=remaining;
 }
@@ -843,760 +238,203 @@ function beginMagic(now){
   drawing=false;
   visible=false;
   magicStart=now;
-
-  patternBox.classList.add(
-    "hidden"
-  );
-
-  hint.textContent=
-    "Смотри, кто появляется!";
-
-  oldMarks=document.createElement(
-    "canvas"
-  );
-
-  oldMarks.width=pane.w;
-  oldMarks.height=pane.h;
-
-  oldMarks
-    .getContext("2d")
-    .drawImage(layer,0,0);
-
-  fillSand();
-}
-
-function clamp01(value){
-  return Math.max(
-    0,
-    Math.min(1,value)
-  );
-}
-
-function pointOnTrace(points,t){
-  const lengths=[];
-  let total=0;
-
-  for(let i=1;i<points.length;i++){
-    const d=Math.hypot(
-      points[i][0]-points[i-1][0],
-      points[i][1]-points[i-1][1]
-    );
-
-    lengths.push(d);
-    total+=d;
-  }
-
-  let distance=total*clamp01(t);
-
-  for(let i=0;i<lengths.length;i++){
-    if(
-      distance<=lengths[i]
-      ||i===lengths.length-1
-    ){
-      const f=lengths[i]
-        ?distance/lengths[i]
-        :0;
-
-      return {
-        x:points[i][0]
-          +(points[i+1][0]
-          -points[i][0])*f,
-
-        y:points[i][1]
-          +(points[i+1][1]
-          -points[i][1])*f
-      };
-    }
-
-    distance-=lengths[i];
-  }
-
-  return {
-    x:points[0][0],
-    y:points[0][1]
-  };
-}
-
-function pictureRect(){
-  const size=Math.min(
-    pane.w*.93,
-    pane.h*.94
-  );
-
-  return {
-    x:pane.x+(pane.w-size)/2,
-    y:pane.y+(pane.h-size)/2,
-    size
-  };
-}
-
-function drawPicture(now){
-  if(phase==="draw")return;
-
-  const rect=pictureRect();
-  const picture=rounds[roundIndex].image;
-
-  if(phase==="dog"){
-    ctx.drawImage(
-      picture,
-      rect.x,rect.y,
-      rect.size,rect.size
-    );
-    return;
-  }
-
-  const elapsed=now-magicStart;
-  const progress=clamp01(
-    (elapsed-180)/1950
-  );
-
-  if(progress<=0)return;
-
-  maskCtx.clearRect(
-    0,0,512,512
-  );
-
-  maskCtx.save();
-  maskCtx.scale(
-    512/1254,
-    512/1254
-  );
-
-  maskCtx.strokeStyle="#fff";
-  maskCtx.fillStyle="#fff";
-  maskCtx.lineWidth=125;
-  maskCtx.lineCap="round";
-  maskCtx.lineJoin="round";
-
-  for(const trace of activeTraces()){
-    const t=clamp01(
-      (progress-trace.start)
-      /trace.duration
-    );
-
-    if(t<=0)continue;
-
-    const pts=trace.points;
-    const lengths=[];
-    let total=0;
-
-    for(let i=1;i<pts.length;i++){
-      const d=Math.hypot(
-        pts[i][0]-pts[i-1][0],
-        pts[i][1]-pts[i-1][1]
-      );
-
-      lengths.push(d);
-      total+=d;
-    }
-
-    let remaining=total*t;
-
-    maskCtx.beginPath();
-    maskCtx.moveTo(
-      pts[0][0],
-      pts[0][1]
-    );
-
-    for(
-      let i=0;
-      i<lengths.length
-        &&remaining>0;
-      i++
-    ){
-      const f=Math.min(
-        1,
-        remaining/(lengths[i]||1)
-      );
-
-      maskCtx.lineTo(
-        pts[i][0]
-          +(pts[i+1][0]
-          -pts[i][0])*f,
-
-        pts[i][1]
-          +(pts[i+1][1]
-          -pts[i][1])*f
-      );
-
-      remaining-=lengths[i];
-    }
-
-    maskCtx.stroke();
-
-    if(total===0){
-      maskCtx.beginPath();
-      maskCtx.arc(
-        pts[0][0],
-        pts[0][1],
-        62,
-        0,
-        Math.PI*2
-      );
-      maskCtx.fill();
-    }
-  }
-
-  maskCtx.restore();
-
-  revealCtx.clearRect(
-    0,0,512,512
-  );
-
-  revealCtx.globalCompositeOperation=
-    "source-over";
-
-  revealCtx.drawImage(
-    picture,
-    0,0,512,512
-  );
-
-  revealCtx.globalCompositeOperation=
-    "destination-in";
-
-  revealCtx.drawImage(
-    mask,0,0
-  );
-
-  revealCtx.globalCompositeOperation=
-    "source-over";
-
-  ctx.drawImage(
-    reveal,
-    rect.x,rect.y,
-    rect.size,rect.size
-  );
-
-  if(progress>.82){
-    ctx.save();
-
-    ctx.globalAlpha=clamp01(
-      (progress-.82)/.18
-    );
-
-    ctx.drawImage(
-      picture,
-      rect.x,rect.y,
-      rect.size,rect.size
-    );
-
-    ctx.restore();
-  }
+  hint.textContent="Смотри, что появится!";
+  const cx=offsetX+(pane.x+pane.w/2)*scale;
+  const cy=offsetY+(pane.y+pane.h/2)*scale;
+  const reach=Math.hypot(canvas.width,canvas.height)*.65;
+  sparkles=Array.from({length:155},(_,i)=>{
+    const angle=i*Math.PI*(3-Math.sqrt(5))+(Math.random()-.5)*.35;
+    return {cx,cy,angle,reach:reach*(.28+Math.random()*.8),
+      delay:Math.random()*.33,size:(8+Math.random()*16)*Math.max(1,Math.min(scale,2)),
+      seed:Math.random()*Math.PI*2,small:i%3===0};
+  });
 }
 
 function drawMagic(now){
   if(phase!=="magic")return;
+  const elapsed=now-magicStart;
+  const cx=offsetX+(pane.x+pane.w/2)*scale;
+  const cy=offsetY+(pane.y+pane.h/2)*scale;
 
-  const progress=clamp01(
-    (now-magicStart-180)/1950
-  );
-
-  const rect=pictureRect();
+  // Свет закрывает смену детского следа на готовый рисунок.
+  if(elapsed<1000){
+    const peak=Math.max(0,1-Math.abs(elapsed-650)/540);
+    const glow=ctx.createRadialGradient(cx,cy,0,cx,cy,Math.max(canvas.width,canvas.height)*.55);
+    glow.addColorStop(0,`rgba(255,250,215,${peak*.94})`);
+    glow.addColorStop(.45,`rgba(255,224,149,${peak*.37})`);
+    glow.addColorStop(1,"rgba(255,224,149,0)");
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+  }
 
   ctx.save();
-  ctx.translate(
-    offsetX,offsetY
-  );
-  ctx.scale(
-    scale,scale
-  );
-
-  ctx.beginPath();
-  ctx.roundRect(
-    pane.x,pane.y,
-    pane.w,pane.h,7
-  );
-  ctx.clip();
-
-  const currentTraces=activeTraces();
-
-  for(
-    let i=0;
-    i<currentTraces.length;
-    i++
-  ){
-    const trace=currentTraces[i];
-
-    const t=(
-      progress-trace.start
-    )/trace.duration;
-
+  for(const p of sparkles){
+    const t=Math.max(0,Math.min(1,(elapsed/1450-p.delay)/(1-p.delay)));
     if(t<=0||t>=1)continue;
-
-    const p=pointOnTrace(
-      trace.points,t
-    );
-
-    const x=rect.x
-      +p.x/1254*rect.size;
-
-    const y=rect.y
-      +p.y/1254*rect.size;
-
-    const alpha=Math.min(
-      1,
-      t*7,
-      (1-t)*9
-    );
-
-    const size=i%4===0
-      ?35
-      :24;
-
-    const pulse=1
-      +.13*Math.sin(
-        now*.012+i*3
-      );
-
-    ctx.globalAlpha=alpha*.48;
-
-    const halo=
-      ctx.createRadialGradient(
-        x,y,0,
-        x,y,size*.95
-      );
-
-    halo.addColorStop(
-      0,
-      "rgba(255,248,215,.85)"
-    );
-
-    halo.addColorStop(
-      .35,
-      "rgba(255,210,118,.45)"
-    );
-
-    halo.addColorStop(
-      1,
-      "rgba(255,210,118,0)"
-    );
-
-    ctx.fillStyle=halo;
-    ctx.beginPath();
-    ctx.arc(
-      x,y,size*.95,
-      0,Math.PI*2
-    );
-    ctx.fill();
-
-    ctx.globalAlpha=alpha;
-
-    if(
-      sparkle.complete
-      &&sparkle.naturalWidth
-    ){
-      const s=size*pulse;
-
-      ctx.drawImage(
-        sparkle,
-        x-s/2,
-        y-s/2,
-        s,s
-      );
+    const distance=p.reach*(1-Math.pow(1-t,2.4));
+    const drift=Math.sin(t*7+p.seed)*6*scale*t;
+    const x=p.cx+Math.cos(p.angle)*distance-Math.sin(p.angle)*drift;
+    const y=p.cy+Math.sin(p.angle)*distance+Math.cos(p.angle)*drift;
+    const alpha=Math.sin(Math.PI*t);
+    ctx.globalAlpha=alpha*(p.small ? .75 : 1);
+    if(p.small||!sparkle.naturalWidth){
+      ctx.fillStyle="#fff2bd";
+      ctx.shadowColor="#ffe9ad";
+      ctx.shadowBlur=p.size*.8;
+      ctx.beginPath();
+      ctx.arc(x,y,p.size*.09,0,Math.PI*2);
+      ctx.fill();
     }else{
-      ctx.fillStyle="#fff4c4";
-      ctx.beginPath();
-      ctx.arc(
-        x,y,2.5,
-        0,Math.PI*2
-      );
-      ctx.fill();
-    }
-
-    for(let j=0;j<5;j++){
-      const angle=i*2.4+j*2.4;
-
-      const d=7+j*2.4
-        +2*Math.sin(
-          now*.004+i+j
-        );
-
-      ctx.globalAlpha=
-        alpha*(.28+j*.1);
-
-      ctx.fillStyle=j%3===0
-        ?"#c8def5"
-        :"#ffe8aa";
-
-      ctx.beginPath();
-      ctx.arc(
-        x+Math.cos(angle)*d,
-        y+Math.sin(angle)*d,
-        j%3===0?1:1.6,
-        0,
-        Math.PI*2
-      );
-      ctx.fill();
+      ctx.drawImage(sparkle,x-p.size/2,y-p.size/2,p.size,p.size);
     }
   }
-
   ctx.restore();
-
-  if(now-magicStart>2300){
-    finishMagic();
-  }
-}
-
-function finishMagic(){
-  phase="dog";
-  oldMarks=null;
-
-  hint.textContent=
-    "Кто появился? "
-    +rounds[roundIndex].name
-    +"!";
-
-  nextButton.textContent=
-    roundIndex===rounds.length-1
-      ?"Играть сначала"
-      :"Следующий рисунок";
-
-  nextButton.classList.add(
-    "show"
-  );
+  if(elapsed>1700){phase="dog";sparkles=[];hint.textContent="Кто появился? Собака!";}
 }
 
 function moveBrush(from,to){
   const dx=to.x-from.x;
   const dy=to.y-from.y;
-
-  const steps=Math.max(
-    1,
-    Math.ceil(
-      Math.hypot(dx,dy)/4
-    )
-  );
+  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));
 
   for(let i=0;i<=steps;i++){
     const t=i/steps;
-
-    stamp(
-      from.x+dx*t,
-      from.y+dy*t,
-      dx,dy
-    );
+    stamp(from.x+dx*t,from.y+dy*t,dx,dy);
   }
 }
 
-canvas.addEventListener(
-  "pointerdown",
-  event=>{
-    if(
-      !ready
-      ||phase!=="draw"
-    )return;
+canvas.addEventListener("pointerdown",event=>{
+  if(!ready||phase!=="draw")return;
 
-    const p=position(event);
+  const p=position(event);
+  if(!inside(p.x,p.y))return;
 
-    if(!inside(p.x,p.y))return;
+  event.preventDefault();
+  canvas.setPointerCapture(event.pointerId);
 
-    event.preventDefault();
-    canvas.setPointerCapture(
-      event.pointerId
-    );
+  drawing=true;
+  lastMoveAt=performance.now();
+  visible=true;
+  pointer=p;
+  last=p;
 
-    drawing=true;
-    visible=true;
-    pointer=p;
-    last=p;
-    stroke=[p];
-    retryAt=0;
+  stamp(p.x,p.y,1,0);
+  hint.textContent="Посмотри, как светится след под песком";
+});
 
-    stamp(
-      p.x,p.y,1,0
-    );
+canvas.addEventListener("pointermove",event=>{
+  if(!ready||phase!=="draw")return;
 
-    hint.textContent=
-      "Посмотри, как светится след под песком";
+  const p=position(event);
+  pointer=p;
+  visible=inside(p.x,p.y);
+
+  if(!drawing||!last)return;
+
+  event.preventDefault();
+  if(Math.hypot(p.x-last.x,p.y-last.y)>.7){
+    moveBrush(last,p);
+    lastMoveAt=performance.now();
   }
-);
-
-canvas.addEventListener(
-  "pointermove",
-  event=>{
-    if(
-      !ready
-      ||phase!=="draw"
-    )return;
-
-    const p=position(event);
-
-    pointer=p;
-    visible=inside(p.x,p.y);
-
-    if(!drawing||!last)return;
-
-    event.preventDefault();
-
-    if(
-      Math.hypot(
-        p.x-last.x,
-        p.y-last.y
-      )>.7
-    ){
-      moveBrush(last,p);
-      stroke.push(p);
-    }
-
-    last=p;
-  }
-);
+  last=p;
+});
 
 function release(){
-  if(
-    drawing
-    &&phase==="draw"
-    &&stroke.length
-  ){
-    const kind=
-      rounds[roundIndex].pattern;
-
-    if(
-      matchesPattern(
-        stroke,kind
-      )
-    ){
-      beginMagic(
-        performance.now()
-      );
-    }else if(
-      stroke.length>9
-    ){
-      hint.textContent=
-        "Почти! Попробуй повторить образец слева";
-
-      retryAt=
-        performance.now()+1000;
-    }
-  }
-
   drawing=false;
   last=null;
-  stroke=[];
 }
 
-canvas.addEventListener(
-  "pointerup",
-  release
-);
+canvas.addEventListener("pointerup",release);
+canvas.addEventListener("pointercancel",release);
+canvas.addEventListener("pointerleave",()=>{
+  if(!drawing)visible=false;
+});
 
-canvas.addEventListener(
-  "pointercancel",
-  release
-);
-
-canvas.addEventListener(
-  "pointerleave",
-  ()=>{
-    if(!drawing){
-      visible=false;
-    }
-  }
-);
-
-function resetRound(){
+document.getElementById("reset").addEventListener("click",()=>{
   if(!ready)return;
-
   fillSand();
-
-  phase="draw";
-  drawing=false;
-  visible=false;
-  oldMarks=null;
-  retryAt=0;
-  stroke=[];
-
-  hint.textContent=
-    "Повтори образец слева одним движением";
-
-  showPattern();
-}
-
-document
-  .getElementById("reset")
-  .addEventListener(
-    "click",
-    resetRound
-  );
-
-nextButton.addEventListener(
-  "click",
-  ()=>{
-    roundIndex=
-      (roundIndex+1)
-      %rounds.length;
-
-    resetRound();
-  }
-);
+  phase="draw";drawMs=0;drawing=false;visible=false;
+  dogVisible=false;sparkles=[];
+  hint.textContent="Проведи пальцем или мышкой по песку";
+});
 
 function render(now){
-  if(
-    retryAt
-    &&now>retryAt
-    &&phase==="draw"
-    &&!drawing
-  ){
-    fillSand();
-    retryAt=0;
+  const delta=Math.min(50,now-lastFrame);
+  lastFrame=now;
+  if(ready&&phase==="draw"&&drawing&&now-lastMoveAt<220){
+    drawMs+=delta;
+    if(drawMs>=3500)beginMagic(now);
   }
-
-  ctx.clearRect(
-    0,0,
-    canvas.width,
-    canvas.height
-  );
+  if(phase==="magic"&&!dogVisible&&now-magicStart>=620){
+    fillSand();
+    dogVisible=true;
+  }
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
   if(ready){
     drawBackground();
-
     ctx.save();
-    ctx.translate(
-      offsetX,offsetY
-    );
-    ctx.scale(
-      scale,scale
-    );
-
-    ctx.drawImage(
-      table,
-      0,0,960,540
-    );
-
+    ctx.translate(offsetX,offsetY);
+    ctx.scale(scale,scale);
+    ctx.drawImage(table,0,0,960,540);
     ctx.save();
     ctx.beginPath();
-
-    ctx.roundRect(
-      pane.x,pane.y,
-      pane.w,pane.h,7
-    );
-
+    ctx.roundRect(pane.x,pane.y,pane.w,pane.h,7);
     ctx.clip();
-
-    ctx.drawImage(
-      layer,
-      pane.x,pane.y
-    );
-
-    if(
-      phase==="magic"
-      &&oldMarks
-    ){
-      const fade=1-clamp01(
-        (now-magicStart-100)/650
-      );
-
-      ctx.globalAlpha=fade;
-
-      ctx.drawImage(
-        oldMarks,
-        pane.x,pane.y
-      );
-
+    ctx.drawImage(layer,pane.x,pane.y);
+    if(dogVisible){
+      const size=Math.min(pane.w*.93,pane.h*.94);
+      const alpha=phase==="magic"?Math.min(1,Math.max(0,(now-magicStart-620)/430)):1;
+      ctx.globalAlpha=alpha;
+      ctx.drawImage(dog,pane.x+(pane.w-size)/2,pane.y+(pane.h-size)/2,size,size);
       ctx.globalAlpha=1;
     }
-
-    drawPicture(now);
     ctx.restore();
-
     drawMovingGrains();
 
-    if(
-      visible
-      &&inside(
-        pointer.x,
-        pointer.y
-      )
-    ){
+    if(visible&&inside(pointer.x,pointer.y)){
       ctx.save();
-
-      ctx.translate(
-        pointer.x,
-        pointer.y
-      );
-
+      ctx.translate(pointer.x,pointer.y);
       ctx.rotate(-.55);
 
-      ctx.shadowColor=
-        "#3b261b77";
-
+      ctx.shadowColor="#3b261b77";
       ctx.shadowBlur=4;
 
-      ctx.fillStyle=
-        "#8d5b32";
+      ctx.fillStyle="#8d5b32";
+      ctx.fillRect(-3,-34,6,26);
 
-      ctx.fillRect(
-        -3,-34,6,26
-      );
-
-      ctx.fillStyle=
-        "#d2b486";
-
+      ctx.fillStyle="#d2b486";
       ctx.beginPath();
       ctx.moveTo(-5,-8);
       ctx.lineTo(5,-8);
       ctx.lineTo(1,1);
+      ctx.lineTo(-1,1);
       ctx.fill();
 
       ctx.restore();
     }
-
     ctx.restore();
     drawMagic(now);
   }
 
-  requestAnimationFrame(
-    render
-  );
+  requestAnimationFrame(render);
 }
 
 Promise.all([
-  load(
-    floor,
-    "fon1.png"
-  ),
-
-  load(
-    table,
-    "stol1.png"
-  ),
-
-  load(
-    texture,
-    "pesok.png"
-  ),
-
-  ...rounds.map(
-    async round=>{
-      round.image=new Image();
-
-      await loadFirst(
-        round.image,
-        round.file
-      );
-    }
-  )
+  load(floor,"fon1.png"),
+  load(table,"stol1.png"),
+  load(texture,"pesok.png"),
+  load(dog,"gitkeep/dog.png")
 ])
 .then(()=>{
   fillSand();
   ready=true;
-
-  hint.textContent=
-    "Повтори образец слева одним движением";
-
-  showPattern();
-
-  loadFirst(
-    sparkle,
-    ["blik.png","gitkeep/blik.png"]
-  ).catch(()=>{});
 })
 .catch(error=>{
-  hint.textContent=
-    error.message;
-
+  hint.textContent=error.message;
   console.error(error);
 });
+load(sparkle,"blik.png").catch(error=>console.warn(error));
 
 requestAnimationFrame(render);
 </script>
