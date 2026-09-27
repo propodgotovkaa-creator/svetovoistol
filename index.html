@@ -9,30 +9,23 @@
 html,body{margin:0;min-height:100%}
 body{
   min-height:100svh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:12px;
-  padding:12px;
+  overflow:hidden;
   background:#111536;
   font-family:system-ui,Arial,sans-serif;
 }
 .scene{
-  position:relative;
-  width:min(1250px,100%);
-  margin:auto;
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100dvh;
   overflow:hidden;
-  border-radius:12px;
-  box-shadow:0 18px 40px #120d0b88;
   touch-action:none;
   user-select:none;
 }
 canvas{
   display:block;
   width:100%;
-  height:auto;
-  aspect-ratio:16/9;
+  height:100%;
   touch-action:none;
   cursor:none;
 }
@@ -49,7 +42,17 @@ canvas{
   line-height:1.3;
   pointer-events:none;
 }
-.controls{display:flex;justify-content:center}
+.controls{
+  position:fixed;
+  z-index:2;
+  left:0;
+  right:0;
+  bottom:max(12px,env(safe-area-inset-bottom));
+  display:flex;
+  justify-content:center;
+  pointer-events:none;
+}
+.controls button{pointer-events:auto}
 button{
   min-height:44px;
   padding:10px 20px;
@@ -62,7 +65,6 @@ button{
   cursor:pointer;
 }
 @media(max-width:600px){
-  body{padding:6px;gap:8px}
   .hint{padding:5px 7px;border-radius:7px;font-size:9px}
   button{font-size:13px}
 }
@@ -70,7 +72,7 @@ button{
 </head>
 <body>
 <div class="scene">
-  <canvas id="game" width="960" height="540"
+  <canvas id="game"
     aria-label="Рисуйте пальцем или мышкой на песочном столе"></canvas>
   <div class="hint" id="hint">Проведи пальцем или мышкой по песку</div>
 </div>
@@ -85,7 +87,6 @@ const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
 const hint=document.getElementById("hint");
 
-// Светящаяся область нового стола.
 const pane={x:261,y:72,w:434,h:390};
 const radius=17;
 
@@ -102,6 +103,31 @@ let drawing=false;
 let visible=false;
 let last=null;
 let pointer={x:0,y:0};
+
+let scale=1;
+let offsetX=0;
+let offsetY=0;
+
+function resize(){
+  const box=canvas.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+
+  canvas.width=Math.round(box.width*dpr);
+  canvas.height=Math.round(box.height*dpr);
+
+  // На узком экране стол становится крупнее.
+  const logicalWidth=box.width<box.height?560:960;
+  scale=Math.min(
+    canvas.width/logicalWidth,
+    canvas.height/540
+  );
+
+  offsetX=(canvas.width-960*scale)/2;
+  offsetY=(canvas.height-540*scale)/2;
+}
+
+window.addEventListener("resize",resize);
+resize();
 
 function load(image,path){
   return new Promise((resolve,reject)=>{
@@ -135,7 +161,6 @@ function fillSand(){
 
   sand.putImageData(image,0,0);
 
-  // Зернистость создаётся один раз и больше не меняется.
   for(let i=0;i<23000;i++){
     const x=Math.random()*pane.w;
     const y=Math.random()*pane.h;
@@ -158,10 +183,27 @@ function inside(x,y){
 
 function position(event){
   const box=canvas.getBoundingClientRect();
+
   return {
-    x:(event.clientX-box.left)*canvas.width/box.width,
-    y:(event.clientY-box.top)*canvas.height/box.height
+    x:((event.clientX-box.left)*canvas.width/box.width-offsetX)/scale,
+    y:((event.clientY-box.top)*canvas.height/box.height-offsetY)/scale
   };
+}
+
+function drawBackground(){
+  const factor=Math.max(
+    canvas.width/floor.width,
+    canvas.height/floor.height
+  );
+  const w=floor.width*factor;
+  const h=floor.height*factor;
+
+  ctx.drawImage(
+    floor,
+    (canvas.width-w)/2,
+    (canvas.height-h)/2,
+    w,h
+  );
 }
 
 function stamp(x,y,dx,dy){
@@ -192,7 +234,6 @@ function stamp(x,y,dx,dy){
   const nx=-dy/len;
   const ny=dx/len;
 
-  // Песчинки по краям следа сразу остаются на месте.
   for(const side of [-1,1]){
     for(let j=0;j<3;j++){
       const spread=r*(.76+Math.random()*.32);
@@ -270,6 +311,7 @@ canvas.addEventListener("pointerleave",()=>{
 
 document.getElementById("reset").addEventListener("click",()=>{
   if(!ready)return;
+
   fillSand();
   hint.textContent="Проведи пальцем или мышкой по песку";
 });
@@ -278,7 +320,12 @@ function render(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   if(ready){
-    ctx.drawImage(floor,0,0,960,540);
+    drawBackground();
+
+    ctx.save();
+    ctx.translate(offsetX,offsetY);
+    ctx.scale(scale,scale);
+
     ctx.drawImage(table,0,0,960,540);
 
     ctx.save();
@@ -309,6 +356,8 @@ function render(){
 
       ctx.restore();
     }
+
+    ctx.restore();
   }
 
   requestAnimationFrame(render);
