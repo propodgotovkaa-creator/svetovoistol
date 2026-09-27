@@ -1,630 +1,164 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Волшебный песочный стол</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      width: 100%;
-      min-height: 100%;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      min-height: 100vh;
-      padding: 20px;
-      overflow-x: hidden;
-      color: #f7e9cb;
-      background:
-        radial-gradient(circle at 50% 30%, #30313c 0%, #15151d 58%, #090a10 100%);
-      font-family: Arial, sans-serif;
-    }
-
-    .heading {
-      margin: 0;
-      font-size: clamp(22px, 3vw, 34px);
-      font-weight: 700;
-      text-align: center;
-    }
-
-    .game {
-      position: relative;
-      width: min(1200px, 96vw);
-      aspect-ratio: 960 / 600;
-      touch-action: none;
-      user-select: none;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      border-radius: 18px;
-      touch-action: none;
-      cursor: none;
-    }
-
-    .instruction {
-      position: absolute;
-      left: 9%;
-      bottom: 11%;
-      max-width: 39%;
-      padding: 10px 14px;
-      border: 1px solid rgba(255, 239, 196, 0.22);
-      border-radius: 13px;
-      color: #fff5dc;
-      background: rgba(31, 24, 25, 0.72);
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
-      font-size: clamp(11px, 1.55vw, 17px);
-      line-height: 1.35;
-      pointer-events: none;
-    }
-
-    .controls {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 10px;
-      width: min(1200px, 96vw);
-    }
-
-    button {
-      min-height: 44px;
-      padding: 10px 19px;
-      border: 1px solid #f3d596;
-      border-radius: 12px;
-      color: #37251a;
-      background: linear-gradient(#ffedbd, #e8bf76);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
-      font: 700 15px Arial, sans-serif;
-      cursor: pointer;
-    }
-
-    button:hover {
-      filter: brightness(1.06);
-    }
-
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-
-    .secondary {
-      color: #f7e9cb;
-      background: #37303a;
-      border-color: #756372;
-    }
-
-    @media (max-width: 600px) {
-      body {
-        padding: 10px;
-        gap: 10px;
-      }
-
-      .instruction {
-        left: 8%;
-        bottom: 10%;
-        max-width: 48%;
-        padding: 6px 8px;
-        border-radius: 8px;
-        font-size: 10px;
-      }
-
-      button {
-        font-size: 13px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Волшебный песочный стол</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px;background:#302721;font-family:system-ui,Arial,sans-serif}
+.scene{position:relative;width:min(1250px,100%);margin:auto;overflow:hidden;border-radius:12px;box-shadow:0 18px 40px #120d0b88;touch-action:none;user-select:none}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;touch-action:none;cursor:none}
+.hint{position:absolute;top:2%;left:2%;max-width:43%;padding:8px 12px;border-radius:11px;background:#fff2d4e8;color:#4b3324;font-size:clamp(11px,1.3vw,16px);line-height:1.3;pointer-events:none}
+.controls{display:flex;justify-content:center}
+button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:13px;background:linear-gradient(#fff0c7,#e6bc78);color:#493223;box-shadow:0 4px 12px #0004;font:700 15px system-ui,sans-serif;cursor:pointer}
+@media(max-width:600px){body{padding:6px;gap:8px}.hint{padding:5px 7px;border-radius:7px;font-size:9px}button{font-size:13px}}
+</style>
 </head>
-
 <body>
-  <h1 class="heading">Волшебный песочный стол</h1>
+<div class="scene">
+  <canvas id="game" width="960" height="540" aria-label="Рисуйте пальцем или мышкой на песочном столе"></canvas>
+  <div class="hint" id="hint">Проведи пальцем или мышкой по песку</div>
+</div>
+<div class="controls"><button id="reset">Разровнять песок</button></div>
+<script>
+"use strict";
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const hint=document.getElementById("hint");
+const pane={x:96,y:117,w:768,h:306};
+const radius=17;
+const layer=document.createElement("canvas");
+layer.width=pane.w;layer.height=pane.h;
+const sand=layer.getContext("2d");
+const floor=new Image(),table=new Image();
+let ready=false,drawing=false,visible=false,last=null;
+let pointer={x:0,y:0},particles=[];
 
-  <div class="game">
-    <canvas id="gameCanvas" width="960" height="600"></canvas>
-
-    <div class="instruction" id="instruction">
-      Проведи кисточкой по песку и произнеси волшебные слова.
-    </div>
-  </div>
-
-  <div class="controls">
-    <button id="magicButton">Слова произнесены ✨</button>
-    <button id="resetButton" class="secondary">Начать заново</button>
-  </div>
-
-  <script>
-    "use strict";
-
-    const WIDTH = 960;
-    const HEIGHT = 600;
-
-    const PANE = {
-      x: 65,
-      y: 55,
-      width: 830,
-      height: 490
-    };
-
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-
-    const instruction = document.getElementById("instruction");
-    const magicButton = document.getElementById("magicButton");
-    const resetButton = document.getElementById("resetButton");
-
-    /*
-      Три слоя:
-      1. baseCanvas - рамка и светящаяся поверхность стола.
-      2. sandCanvas - слой песка, который стирается кистью.
-      3. Основной canvas - собирает всё вместе и показывает кисть.
-    */
-
-    const baseCanvas = document.createElement("canvas");
-    baseCanvas.width = WIDTH;
-    baseCanvas.height = HEIGHT;
-    const base = baseCanvas.getContext("2d");
-
-    const sandCanvas = document.createElement("canvas");
-    sandCanvas.width = WIDTH;
-    sandCanvas.height = HEIGHT;
-    const sand = sandCanvas.getContext("2d");
-
-    let pointerDown = false;
-    let pointerInside = false;
-    let pointer = { x: 480, y: 300 };
-    let previousPointer = null;
-
-    let state = "drawing";
-    let revealIndex = 0;
-    let lastRevealTime = 0;
-
-    // Точки большого простого контура собаки, вид сбоку.
-    const dogControlPoints = [
-      [270, 330],
-      [225, 332],
-      [207, 315],
-      [220, 298],
-      [247, 292],
-      [253, 255],
-      [275, 225],
-      [290, 205],
-      [280, 171],
-      [310, 165],
-      [331, 199],
-      [350, 220],
-      [390, 230],
-      [460, 225],
-      [540, 222],
-      [605, 218],
-      [650, 205],
-      [677, 164],
-      [710, 171],
-      [692, 226],
-      [660, 255],
-      [646, 290],
-      [650, 360],
-      [672, 415],
-      [635, 422],
-      [610, 400],
-      [600, 341],
-      [570, 338],
-      [520, 345],
-      [460, 345],
-      [405, 335],
-      [395, 404],
-      [386, 422],
-      [345, 422],
-      [350, 397],
-      [358, 328],
-      [325, 313],
-      [300, 340]
-    ];
-
-    function insidePane(x, y) {
-      const margin = 18;
-
-      return (
-        x >= PANE.x + margin &&
-        x <= PANE.x + PANE.width - margin &&
-        y >= PANE.y + margin &&
-        y <= PANE.y + PANE.height - margin
-      );
-    }
-
-    function roundedRect(context, x, y, width, height, radius) {
-      context.beginPath();
-      context.roundRect(x, y, width, height, radius);
-    }
-
-    function drawBase() {
-      base.clearRect(0, 0, WIDTH, HEIGHT);
-
-      // Тень под столом.
-      base.fillStyle = "rgba(0, 0, 0, 0.55)";
-      base.filter = "blur(22px)";
-      roundedRect(base, 37, 36, 886, 540, 30);
-      base.fill();
-      base.filter = "none";
-
-      // Деревянная рама.
-      const wood = base.createLinearGradient(0, 25, 960, 580);
-      wood.addColorStop(0, "#c39a67");
-      wood.addColorStop(0.3, "#745039");
-      wood.addColorStop(0.7, "#b38559");
-      wood.addColorStop(1, "#513627");
-
-      base.fillStyle = wood;
-      roundedRect(base, 30, 20, 900, 560, 26);
-      base.fill();
-
-      base.strokeStyle = "rgba(255, 225, 170, 0.45)";
-      base.lineWidth = 4;
-      roundedRect(base, 36, 26, 888, 548, 22);
-      base.stroke();
-
-      // Внутренняя тёмная кромка.
-      base.fillStyle = "#3d302a";
-      roundedRect(
-        base,
-        PANE.x - 7,
-        PANE.y - 7,
-        PANE.width + 14,
-        PANE.height + 14,
-        13
-      );
-      base.fill();
-
-      // Свет под песком. Он виден там, где ребёнок раздвигает песок.
-      const light = base.createRadialGradient(
-        480, 300, 40,
-        480, 300, 530
-      );
-
-      light.addColorStop(0, "#fff3cc");
-      light.addColorStop(0.55, "#f3d69b");
-      light.addColorStop(1, "#b7a080");
-
-      base.fillStyle = light;
-      roundedRect(
-        base,
-        PANE.x,
-        PANE.y,
-        PANE.width,
-        PANE.height,
-        7
-      );
-      base.fill();
-
-      // Лёгкое сияние вокруг рабочей поверхности.
-      base.save();
-      base.shadowColor = "rgba(255, 218, 150, 0.48)";
-      base.shadowBlur = 22;
-      base.strokeStyle = "rgba(255, 218, 150, 0.25)";
-      base.lineWidth = 5;
-      roundedRect(
-        base,
-        PANE.x,
-        PANE.y,
-        PANE.width,
-        PANE.height,
-        7
-      );
-      base.stroke();
-      base.restore();
-    }
-
-    function createSand() {
-      sand.clearRect(0, 0, WIDTH, HEIGHT);
-
-      sand.save();
-      roundedRect(
-        sand,
-        PANE.x,
-        PANE.y,
-        PANE.width,
-        PANE.height,
-        7
-      );
-      sand.clip();
-
-      const sandColor = sand.createLinearGradient(
-        PANE.x,
-        PANE.y,
-        PANE.x + PANE.width,
-        PANE.y + PANE.height
-      );
-
-      sandColor.addColorStop(0, "#a98763");
-      sandColor.addColorStop(0.5, "#bd9a73");
-      sandColor.addColorStop(1, "#987756");
-
-      sand.fillStyle = sandColor;
-      sand.fillRect(PANE.x, PANE.y, PANE.width, PANE.height);
-
-      // Мелкие песчинки. Рисуем один раз при начале игры.
-      for (let i = 0; i < 21000; i++) {
-        const x = PANE.x + Math.random() * PANE.width;
-        const y = PANE.y + Math.random() * PANE.height;
-        const size = Math.random() * 1.3 + 0.25;
-
-        sand.fillStyle = Math.random() > 0.52
-          ? "rgba(255, 237, 196, 0.25)"
-          : "rgba(75, 50, 35, 0.17)";
-
-        sand.fillRect(x, y, size, size);
-      }
-
-      sand.restore();
-    }
-
-    /*
-      Один проход кисточки.
-      Центр песка становится прозрачным, и снизу виден свет.
-      Края стираются мягко, чтобы след не выглядел компьютерной линией.
-    */
-    function brushStamp(x, y, radius, strength = 1) {
-      if (!insidePane(x, y)) return;
-
-      sand.save();
-
-      roundedRect(
-        sand,
-        PANE.x,
-        PANE.y,
-        PANE.width,
-        PANE.height,
-        7
-      );
-      sand.clip();
-
-      sand.globalCompositeOperation = "destination-out";
-
-      const gradient = sand.createRadialGradient(
-        x, y, radius * 0.15,
-        x, y, radius
-      );
-
-      gradient.addColorStop(0, `rgba(0, 0, 0, ${strength})`);
-      gradient.addColorStop(0.62, `rgba(0, 0, 0, ${strength * 0.82})`);
-      gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
-
-      sand.fillStyle = gradient;
-      sand.beginPath();
-      sand.arc(x, y, radius, 0, Math.PI * 2);
-      sand.fill();
-
-      sand.restore();
-    }
-
-    function brushLine(from, to, radius, strength = 1) {
-      const distance = Math.hypot(
-        to.x - from.x,
-        to.y - from.y
-      );
-
-      const steps = Math.max(1, Math.ceil(distance / 4));
-
-      for (let i = 0; i <= steps; i++) {
-        const t = i / steps;
-
-        brushStamp(
-          from.x + (to.x - from.x) * t,
-          from.y + (to.y - from.y) * t,
-          radius,
-          strength
-        );
-      }
-    }
-
-    /*
-      Делаем плавный контур из опорных точек.
-      Это временный рисунок: позднее его можно заменить
-      на точный контур собаки, нарисованный художником.
-    */
-    function makeSmoothClosedPath(points, stepsPerPart = 12) {
-      const result = [];
-      const count = points.length;
-
-      for (let i = 0; i < count; i++) {
-        const p0 = points[(i - 1 + count) % count];
-        const p1 = points[i];
-        const p2 = points[(i + 1) % count];
-        const p3 = points[(i + 2) % count];
-
-        for (let step = 0; step < stepsPerPart; step++) {
-          const t = step / stepsPerPart;
-          const t2 = t * t;
-          const t3 = t2 * t;
-
-          const x = 0.5 * (
-            2 * p1[0] +
-            (-p0[0] + p2[0]) * t +
-            (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
-            (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3
-          );
-
-          const y = 0.5 * (
-            2 * p1[1] +
-            (-p0[1] + p2[1]) * t +
-            (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
-            (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3
-          );
-
-          result.push({ x, y });
-        }
-      }
-
-      result.push({ ...result[0] });
-      return result;
-    }
-
-    const dogPath = makeSmoothClosedPath(dogControlPoints);
-
-    function getPointerPosition(event) {
-      const rect = canvas.getBoundingClientRect();
-
-      return {
-        x: (event.clientX - rect.left) * WIDTH / rect.width,
-        y: (event.clientY - rect.top) * HEIGHT / rect.height
-      };
-    }
-
-    canvas.addEventListener("pointerdown", (event) => {
-      const position = getPointerPosition(event);
-
-      if (!insidePane(position.x, position.y)) return;
-
-      canvas.setPointerCapture(event.pointerId);
-
-      pointerDown = true;
-      pointerInside = true;
-      pointer = position;
-      previousPointer = position;
-
-      brushStamp(position.x, position.y, 19);
+function load(image,path){
+  return new Promise((resolve,reject)=>{
+    image.onload=resolve;
+    image.onerror=()=>reject(new Error("Не удалось загрузить "+path));
+    image.src=path;
+  });
+}
+function fillSand(){
+  const image=sand.createImageData(pane.w,pane.h),d=image.data;
+  for(let y=0;y<pane.h;y++)for(let x=0;x<pane.w;x++){
+    const i=(y*pane.w+x)*4;
+    const wave=7*Math.sin(x*.025+y*.011)+5*Math.sin(y*.047-x*.013);
+    const noise=(Math.random()-.5)*31,s=wave+noise;
+    d[i]=176+s;d[i+1]=139+s*.87;d[i+2]=96+s*.68;d[i+3]=251;
+  }
+  sand.globalCompositeOperation="source-over";
+  sand.putImageData(image,0,0);
+  for(let i=0;i<23000;i++){
+    const x=Math.random()*pane.w,y=Math.random()*pane.h,n=.35+Math.random()*1.2;
+    sand.fillStyle=Math.random()>.49?"rgba(255,231,174,.23)":"rgba(75,47,31,.16)";
+    sand.fillRect(x,y,n,n);
+  }
+  particles=[];
+}
+function inside(x,y){
+  return x>=pane.x+5&&x<pane.x+pane.w-5&&y>=pane.y+5&&y<pane.y+pane.h-5;
+}
+function position(event){
+  const box=canvas.getBoundingClientRect();
+  return {x:(event.clientX-box.left)*960/box.width,y:(event.clientY-box.top)*540/box.height};
+}
+// Эту же функцию позже вызовет автоматическое рисование собаки.
+function stamp(x,y,dx,dy){
+  if(!inside(x,y))return;
+  const sx=x-pane.x,sy=y-pane.y;
+  const r=radius*(.92+Math.random()*.15);
+  const fade=sand.createRadialGradient(sx,sy,r*.14,sx,sy,r);
+  fade.addColorStop(0,"rgba(0,0,0,.98)");
+  fade.addColorStop(.48,"rgba(0,0,0,.92)");
+  fade.addColorStop(.78,"rgba(0,0,0,.38)");
+  fade.addColorStop(1,"rgba(0,0,0,0)");
+  sand.globalCompositeOperation="destination-out";
+  sand.fillStyle=fade;
+  sand.beginPath();sand.arc(sx,sy,r,0,Math.PI*2);sand.fill();
+  sand.globalCompositeOperation="source-over";
+  const len=Math.hypot(dx,dy)||1,nx=-dy/len,ny=dx/len;
+  for(const side of [-1,1])for(let j=0;j<3;j++){
+    const spread=r*(.76+Math.random()*.32);
+    const jitter=(Math.random()-.5)*6;
+    const px=sx+nx*spread*side+dx/len*jitter;
+    const py=sy+ny*spread*side+dy/len*jitter;
+    if(px<1||py<1||px>=pane.w-1||py>=pane.h-1)continue;
+    const size=1.2+Math.random()*2.6;
+    sand.fillStyle=side===1?"rgba(104,71,46,.56)":"rgba(235,195,133,.65)";
+    sand.beginPath();sand.ellipse(px,py,size,size*.65,0,0,Math.PI*2);sand.fill();
+    if(Math.random()<.34&&particles.length<350)particles.push({
+      x:pane.x+px,y:pane.y+py,
+      vx:nx*side*(1+Math.random()*1.4),
+      vy:ny*side*(1+Math.random()*1.4),
+      age:0,life:22+Math.random()*24,size:.8+Math.random()*1.5
     });
-
-    canvas.addEventListener("pointermove", (event) => {
-      pointer = getPointerPosition(event);
-      pointerInside = insidePane(pointer.x, pointer.y);
-
-      if (!pointerDown || !previousPointer) return;
-
-      brushLine(previousPointer, pointer, 19);
-      previousPointer = pointer;
-    });
-
-    function releasePointer() {
-      pointerDown = false;
-      previousPointer = null;
+  }
+}
+function moveBrush(from,to){
+  const dx=to.x-from.x,dy=to.y-from.y;
+  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));
+  for(let i=0;i<=steps;i++){
+    const t=i/steps;
+    stamp(from.x+dx*t,from.y+dy*t,dx,dy);
+  }
+}
+canvas.addEventListener("pointerdown",event=>{
+  if(!ready)return;
+  const p=position(event);if(!inside(p.x,p.y))return;
+  event.preventDefault();canvas.setPointerCapture(event.pointerId);
+  drawing=true;visible=true;pointer=p;last=p;
+  stamp(p.x,p.y,1,0);
+  hint.textContent="Посмотри, как светится след под песком";
+});
+canvas.addEventListener("pointermove",event=>{
+  if(!ready)return;
+  const p=position(event);pointer=p;visible=inside(p.x,p.y);
+  if(!drawing||!last)return;
+  event.preventDefault();moveBrush(last,p);last=p;
+});
+function release(){drawing=false;last=null}
+canvas.addEventListener("pointerup",release);
+canvas.addEventListener("pointercancel",release);
+canvas.addEventListener("pointerleave",()=>{if(!drawing)visible=false});
+document.getElementById("reset").addEventListener("click",()=>{
+  if(!ready)return;
+  fillSand();hint.textContent="Проведи пальцем или мышкой по песку";
+});
+function render(){
+  ctx.clearRect(0,0,960,540);
+  if(ready){
+    ctx.drawImage(floor,0,0,960,540);
+    ctx.drawImage(table,0,0,960,540);
+    ctx.drawImage(layer,pane.x,pane.y);
+    ctx.save();
+    ctx.beginPath();ctx.rect(pane.x,pane.y,pane.w,pane.h);ctx.clip();
+    particles=particles.filter(p=>p.age<p.life);
+    for(const p of particles){
+      p.x+=p.vx;p.y+=p.vy;p.vx*=.92;p.vy*=.92;p.age++;
+      ctx.globalAlpha=Math.max(0,1-p.age/p.life);
+      ctx.fillStyle=p.age%3?"#d6ae75":"#795331";
+      ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
     }
-
-    canvas.addEventListener("pointerup", releasePointer);
-    canvas.addEventListener("pointercancel", releasePointer);
-
-    canvas.addEventListener("pointerleave", () => {
-      if (!pointerDown) pointerInside = false;
-    });
-
-    magicButton.addEventListener("click", () => {
-      if (state !== "drawing") return;
-
-      state = "revealing";
-      revealIndex = 0;
-      lastRevealTime = 0;
-
-      magicButton.disabled = true;
-      magicButton.textContent = "Собака появляется ✨";
-
-      instruction.textContent =
-        "Смотри! Песок сам раздвигается и появляется рисунок.";
-    });
-
-    resetButton.addEventListener("click", () => {
-      createSand();
-
-      state = "drawing";
-      revealIndex = 0;
-      lastRevealTime = 0;
-
-      magicButton.disabled = false;
-      magicButton.textContent = "Слова произнесены ✨";
-
-      instruction.textContent =
-        "Проведи кисточкой по песку и произнеси волшебные слова.";
-    });
-
-    function drawBrushCursor() {
-      if (!pointerInside) return;
-
-      ctx.save();
-      ctx.translate(pointer.x, pointer.y);
-      ctx.rotate(-0.6);
-
-      // Тень кисточки.
-      ctx.shadowColor = "rgba(0, 0, 0, 0.55)";
-      ctx.shadowBlur = 7;
-      ctx.shadowOffsetX = 3;
-      ctx.shadowOffsetY = 5;
-
-      // Ручка.
-      ctx.fillStyle = "#714323";
-      roundedRect(ctx, -6, -76, 12, 59, 5);
-      ctx.fill();
-
-      ctx.fillStyle = "#b77d42";
-      roundedRect(ctx, -4, -73, 4, 52, 2);
-      ctx.fill();
-
-      // Металлическое крепление.
-      ctx.fillStyle = "#9b8e76";
-      roundedRect(ctx, -8, -24, 16, 14, 3);
-      ctx.fill();
-
-      // Щетина направлена к точке рисования.
-      ctx.fillStyle = "#e3c995";
-      ctx.beginPath();
-      ctx.moveTo(-8, -11);
-      ctx.lineTo(8, -11);
-      ctx.lineTo(3, 0);
-      ctx.lineTo(-3, 0);
-      ctx.closePath();
-      ctx.fill();
-
+    ctx.restore();
+    if(visible&&inside(pointer.x,pointer.y)){
+      ctx.save();ctx.translate(pointer.x,pointer.y);ctx.rotate(-.55);
+      ctx.shadowColor="#3b261b77";ctx.shadowBlur=4;
+      ctx.fillStyle="#8d5b32";ctx.fillRect(-3,-34,6,26);
+      ctx.fillStyle="#d2b486";ctx.beginPath();
+      ctx.moveTo(-5,-8);ctx.lineTo(5,-8);ctx.lineTo(1,1);ctx.lineTo(-1,1);ctx.fill();
       ctx.restore();
     }
-
-    function animate(time) {
-      /*
-        После волшебных слов стираем песок вдоль контура.
-        Контур проявляется постепенно, а не появляется
-        готовой картинкой одним кадром.
-      */
-      if (state === "revealing" && time - lastRevealTime > 17) {
-        lastRevealTime = time;
-
-        for (let i = 0; i < 4 && revealIndex < dogPath.length - 1; i++) {
-          const from = dogPath[revealIndex];
-          const to = dogPath[revealIndex + 1];
-
-          brushLine(from, to, 10, 0.9);
-          revealIndex++;
-        }
-
-        if (revealIndex >= dogPath.length - 1) {
-          state = "finished";
-
-          instruction.textContent =
-            "Это собака! Дорисуй ей глаз и ошейник кисточкой.";
-
-          magicButton.textContent = "Рисунок готов ✓";
-        }
-      }
-
-      ctx.clearRect(0, 0, WIDTH, HEIGHT);
-      ctx.drawImage(baseCanvas, 0, 0);
-      ctx.drawImage(sandCanvas, 0, 0);
-      drawBrushCursor();
-
-      requestAnimationFrame(animate);
-    }
-
-    drawBase();
-    createSand();
-    requestAnimationFrame(animate);
-  </script>
+  }
+  requestAnimationFrame(render);
+}
+Promise.all([load(floor,"fon.png.png"),load(table,"stol.png.png")])
+  .then(()=>{fillSand();ready=true})
+  .catch(error=>{hint.textContent=error.message;console.error(error)});
+requestAnimationFrame(render);
+</script>
 </body>
 </html>
