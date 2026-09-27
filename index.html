@@ -9,9 +9,9 @@
 html,body{margin:0;min-height:100%}
 body{
   min-height:100svh;
-  overflow:hidden;
   background:#111536;
   font-family:system-ui,Arial,sans-serif;
+  overflow:hidden;
 }
 .scene{
   position:fixed;
@@ -97,12 +97,14 @@ const sand=layer.getContext("2d");
 
 const floor=new Image();
 const table=new Image();
+const texture=new Image();
 
 let ready=false;
 let drawing=false;
 let visible=false;
 let last=null;
 let pointer={x:0,y:0};
+let flying=[];
 
 let scale=1;
 let offsetX=0;
@@ -115,7 +117,6 @@ function resize(){
   canvas.width=Math.round(box.width*dpr);
   canvas.height=Math.round(box.height*dpr);
 
-  // На узком экране стол становится крупнее.
   const logicalWidth=box.width<box.height?560:960;
   scale=Math.min(
     canvas.width/logicalWidth,
@@ -141,37 +142,19 @@ function fillSand(){
   sand.globalCompositeOperation="source-over";
   sand.clearRect(0,0,pane.w,pane.h);
 
-  const image=sand.createImageData(pane.w,pane.h);
-  const d=image.data;
+  const ratio=pane.w/pane.h;
+  const sw=Math.min(texture.width,texture.height*ratio);
+  const sh=sw/ratio;
 
-  for(let y=0;y<pane.h;y++){
-    for(let x=0;x<pane.w;x++){
-      const i=(y*pane.w+x)*4;
-      const wave=7*Math.sin(x*.025+y*.011)
-                +5*Math.sin(y*.047-x*.013);
-      const noise=(Math.random()-.5)*31;
-      const shade=wave+noise;
+  sand.drawImage(
+    texture,
+    (texture.width-sw)/2,
+    (texture.height-sh)/2,
+    sw,sh,
+    0,0,pane.w,pane.h
+  );
 
-      d[i]=176+shade;
-      d[i+1]=139+shade*.87;
-      d[i+2]=96+shade*.68;
-      d[i+3]=255;
-    }
-  }
-
-  sand.putImageData(image,0,0);
-
-  for(let i=0;i<23000;i++){
-    const x=Math.random()*pane.w;
-    const y=Math.random()*pane.h;
-    const size=.35+Math.random()*1.2;
-
-    sand.fillStyle=Math.random()>.49
-      ?"rgba(255,231,174,.23)"
-      :"rgba(75,47,31,.16)";
-
-    sand.fillRect(x,y,size,size);
-  }
+  flying=[];
 }
 
 function inside(x,y){
@@ -234,35 +217,110 @@ function stamp(x,y,dx,dy){
   const nx=-dy/len;
   const ny=dx/len;
 
+  // Небольшие валики песка по краям следа.
   for(const side of [-1,1]){
-    for(let j=0;j<3;j++){
-      const spread=r*(.76+Math.random()*.32);
-      const jitter=(Math.random()-.5)*6;
-      const px=sx+nx*spread*side+dx/len*jitter;
-      const py=sy+ny*spread*side+dy/len*jitter;
+    const bx=sx+nx*r*.84*side;
+    const by=sy+ny*r*.84*side;
 
-      if(px<1||py<1||px>=pane.w-1||py>=pane.h-1)continue;
+    if(bx<3||by<3||bx>pane.w-3||by>pane.h-3)continue;
 
-      const size=1.2+Math.random()*2.6;
-      sand.fillStyle=side===1
-        ?"rgba(104,71,46,.56)"
-        :"rgba(235,195,133,.65)";
+    const ridge=sand.createRadialGradient(
+      bx,by,1,
+      bx,by,7
+    );
+    ridge.addColorStop(0,"rgba(255,226,162,.46)");
+    ridge.addColorStop(.55,"rgba(157,99,51,.21)");
+    ridge.addColorStop(1,"rgba(105,64,37,0)");
 
-      sand.beginPath();
-      sand.ellipse(px,py,size,size*.65,0,0,Math.PI*2);
-      sand.fill();
+    sand.fillStyle=ridge;
+    sand.beginPath();
+    sand.arc(bx,by,7,0,Math.PI*2);
+    sand.fill();
+
+    for(let j=0;j<5;j++){
+      const spread=r*(.77+Math.random()*.42);
+      const along=(Math.random()-.5)*9;
+      const px=sx+nx*spread*side+dx/len*along;
+      const py=sy+ny*spread*side+dy/len*along;
+
+      if(px<2||py<2||px>pane.w-2||py>pane.h-2)continue;
+
+      const size=.45+Math.random()*1.25;
+      const color=Math.random()<.55
+        ?"#f8d693"
+        :Math.random()<.6?"#d39b57":"#9e693e";
+
+      sand.fillStyle=color;
+      sand.fillRect(px,py,size,size*.8);
+
+      if(Math.random()<.34&&flying.length<180){
+        flying.push({
+          x:px,
+          y:py,
+          vx:nx*side*(.6+Math.random()*1.4),
+          vy:ny*side*(.6+Math.random()*1.4),
+          size,
+          color,
+          age:0,
+          life:9+Math.random()*9
+        });
+      }
     }
   }
+}
+
+function drawMovingGrains(){
+  const remaining=[];
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(pane.x,pane.y,pane.w,pane.h);
+  ctx.clip();
+
+  for(const p of flying){
+    p.x+=p.vx;
+    p.y+=p.vy;
+    p.vx*=.88;
+    p.vy*=.88;
+    p.age++;
+
+    if(p.age>=p.life){
+      if(p.x>1&&p.y>1&&p.x<pane.w-1&&p.y<pane.h-1){
+        sand.fillStyle=p.color;
+        sand.fillRect(p.x,p.y,p.size,p.size*.8);
+      }
+    }else{
+      ctx.globalAlpha=Math.min(1,(p.life-p.age)/5);
+      ctx.fillStyle=p.color;
+      ctx.fillRect(
+        pane.x+p.x,
+        pane.y+p.y,
+        p.size,
+        p.size*.8
+      );
+      remaining.push(p);
+    }
+  }
+
+  ctx.restore();
+  flying=remaining;
 }
 
 function moveBrush(from,to){
   const dx=to.x-from.x;
   const dy=to.y-from.y;
-  const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));
+  const steps=Math.max(
+    1,
+    Math.ceil(Math.hypot(dx,dy)/4)
+  );
 
   for(let i=0;i<=steps;i++){
     const t=i/steps;
-    stamp(from.x+dx*t,from.y+dy*t,dx,dy);
+    stamp(
+      from.x+dx*t,
+      from.y+dy*t,
+      dx,dy
+    );
   }
 }
 
@@ -335,6 +393,8 @@ function render(){
     ctx.drawImage(layer,pane.x,pane.y);
     ctx.restore();
 
+    drawMovingGrains();
+
     if(visible&&inside(pointer.x,pointer.y)){
       ctx.save();
       ctx.translate(pointer.x,pointer.y);
@@ -351,7 +411,6 @@ function render(){
       ctx.moveTo(-5,-8);
       ctx.lineTo(5,-8);
       ctx.lineTo(1,1);
-      ctx.lineTo(-1,1);
       ctx.fill();
 
       ctx.restore();
@@ -365,7 +424,8 @@ function render(){
 
 Promise.all([
   load(floor,"fon1.png"),
-  load(table,"stol1.png")
+  load(table,"stol1.png"),
+  load(texture,"pesok.png")
 ])
 .then(()=>{
   fillSand();
