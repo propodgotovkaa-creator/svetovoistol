@@ -231,7 +231,16 @@ const picturePaths=[
     [[710,970],[850,1010],[1090,990]]
   ]
 ];
+const sharedTraces=Array.from({length:8},(_,i)=>({
+  start:i*.085,
+  duration:.31,
+  points:Array.from({length:9},(_,j)=>{
+    const x=115+j*128;
+    return[i%2?1150-x+115:x,190+i*123+22*Math.sin(j*.95+i*.7)];
+  })
+}));
 function activeTraces(){
+  if(modeIndex>0)return sharedTraces;
   if(roundIndex===0)return traces;
   const paths=picturePaths[roundIndex];
   return paths.map((points,i)=>({points,start:i/paths.length*.68,duration:.31}));
@@ -556,51 +565,42 @@ function drawDog(now){
   const progress=clamp01((elapsed-180)/1950);
   if(progress<=0)return;
   maskCtx.clearRect(0,0,512,512);
-  if(modeIndex>0){
-    const edge=progress*420;
-    const light=maskCtx.createRadialGradient(256,256,Math.max(0,edge-70),256,256,Math.max(1,edge));
-    light.addColorStop(0,"#fff");
-    light.addColorStop(1,"rgba(255,255,255,0)");
-    maskCtx.fillStyle=light;
-    maskCtx.fillRect(0,0,512,512);
-  }else{
-    maskCtx.save();
-    maskCtx.scale(512/1254,512/1254);
-    maskCtx.strokeStyle="#fff";
-    maskCtx.fillStyle="#fff";
-    maskCtx.lineWidth=125;
-    maskCtx.lineCap="round";
-    maskCtx.lineJoin="round";
-    for(const trace of activeTraces()){
-      const t=clamp01((progress-trace.start)/trace.duration);
-      if(t<=0)continue;
-      const pts=trace.points,lengths=[];
-      let total=0;
-      for(let i=1;i<pts.length;i++){
-        const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
-        lengths.push(d);
-        total+=d;
-      }
-      let remaining=total*t;
-      maskCtx.beginPath();
-      maskCtx.moveTo(pts[0][0],pts[0][1]);
-      for(let i=0;i<lengths.length&&remaining>0;i++){
-        const f=Math.min(1,remaining/(lengths[i]||1));
-        maskCtx.lineTo(
-          pts[i][0]+(pts[i+1][0]-pts[i][0])*f,
-          pts[i][1]+(pts[i+1][1]-pts[i][1])*f
-        );
-        remaining-=lengths[i];
-      }
-      maskCtx.stroke();
-      if(total===0){
-        maskCtx.beginPath();
-        maskCtx.arc(pts[0][0],pts[0][1],62,0,Math.PI*2);
-        maskCtx.fill();
-      }
+  maskCtx.save();
+  maskCtx.scale(512/1254,512/1254);
+  maskCtx.strokeStyle="#fff";
+  maskCtx.fillStyle="#fff";
+  maskCtx.lineWidth=125;
+  maskCtx.lineCap="round";
+  maskCtx.lineJoin="round";
+  for(const trace of activeTraces()){
+    const t=clamp01((progress-trace.start)/trace.duration);
+    if(t<=0)continue;
+    const pts=trace.points,lengths=[];
+    let total=0;
+    for(let i=1;i<pts.length;i++){
+      const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+      lengths.push(d);
+      total+=d;
     }
-    maskCtx.restore();
+    let remaining=total*t;
+    maskCtx.beginPath();
+    maskCtx.moveTo(pts[0][0],pts[0][1]);
+    for(let i=0;i<lengths.length&&remaining>0;i++){
+      const f=Math.min(1,remaining/(lengths[i]||1));
+      maskCtx.lineTo(
+        pts[i][0]+(pts[i+1][0]-pts[i][0])*f,
+        pts[i][1]+(pts[i+1][1]-pts[i][1])*f
+      );
+      remaining-=lengths[i];
+    }
+    maskCtx.stroke();
+    if(total===0){
+      maskCtx.beginPath();
+      maskCtx.arc(pts[0][0],pts[0][1],62,0,Math.PI*2);
+      maskCtx.fill();
+    }
   }
+  maskCtx.restore();
   revealCtx.clearRect(0,0,512,512);
   revealCtx.globalCompositeOperation="source-over";
   revealCtx.drawImage(picture,0,0,512,512);
@@ -617,11 +617,6 @@ function drawDog(now){
 }
 function drawMagic(now){
   if(phase!=="magic")return;
-  if(modeIndex>0){
-    drawMagicRadial(now);
-    if(now-magicStart>2300)finishMagic();
-    return;
-  }
   const progress=clamp01((now-magicStart-180)/1950);
   const rect=dogRect();
   ctx.save();
@@ -672,41 +667,6 @@ function drawMagic(now){
   }
   ctx.restore();
   if(now-magicStart>2300)finishMagic();
-}
-function drawMagicRadial(now){
-  const progress=clamp01((now-magicStart-180)/1950);
-  const rect=dogRect();
-  const cx=rect.x+rect.size/2,cy=rect.y+rect.size/2;
-  ctx.save();
-  ctx.translate(offsetX,offsetY);
-  ctx.scale(scale,scale);
-  ctx.beginPath();
-  ctx.roundRect(pane.x,pane.y,pane.w,pane.h,7);
-  ctx.clip();
-  for(let i=0;i<24;i++){
-    const t=(progress-i*.012)/.7;
-    if(t<=0||t>=1)continue;
-    const angle=i*2.399+Math.sin(now*.001+i)*.07;
-    const distance=t*rect.size*.62;
-    const x=cx+Math.cos(angle)*distance;
-    const y=cy+Math.sin(angle)*distance;
-    const a=Math.min(1,t*6,(1-t)*5);
-    const size=i%5===0?29:18;
-    const halo=ctx.createRadialGradient(x,y,0,x,y,size);
-    halo.addColorStop(0,"rgba(255,250,214,.85)");
-    halo.addColorStop(.4,"rgba(255,211,130,.4)");
-    halo.addColorStop(1,"rgba(255,211,130,0)");
-    ctx.globalAlpha=a*.75;
-    ctx.fillStyle=halo;
-    ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fill();
-    ctx.globalAlpha=a;
-    if(sparkle.complete&&sparkle.naturalWidth){
-      ctx.drawImage(sparkle,x-size/2,y-size/2,size,size);
-    }else{
-      ctx.fillStyle="#fff3bb";ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();
-    }
-  }
-  ctx.restore();
 }
 function finishMagic(){
   phase="dog";
