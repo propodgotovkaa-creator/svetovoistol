@@ -26,6 +26,12 @@ canvas.finished{cursor:default}
 .pattern svg{display:block;width:100%;height:auto;stroke:#ffdea5;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;fill:none}
 .pattern strong{display:block;font-size:clamp(11px,1.4vw,16px)}
 .pattern.hidden{display:none}
+.word{position:fixed;z-index:2;left:clamp(8px,2vw,24px);top:50%;transform:translateY(-50%);max-width:clamp(82px,17vw,170px);padding:10px 13px;border:1px solid #d7c4f099;border-radius:15px;background:#63518baa;color:#fff5df;text-align:center;text-shadow:0 1px 4px #2b1c53;font-size:clamp(13px,2vw,23px);font-weight:700;box-shadow:0 8px 25px #080c3077;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);pointer-events:none}
+.word[hidden]{display:none}
+.end{position:fixed;z-index:6;inset:0;display:grid;place-items:center;background:#0f143b88;padding:16px}
+.end[hidden]{display:none}
+.end-card{width:min(90vw,380px);padding:30px 24px;border:1px solid #e1c9efaa;border-radius:24px;background:#453366e6;color:#fff4df;text-align:center;box-shadow:0 18px 55px #08092599;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.end-card p{margin:0 0 22px;font-size:clamp(20px,3vw,28px);font-weight:700;line-height:1.35}
 #next{display:none}
 #next.show{display:block}
 button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:13px;background:linear-gradient(#fff0c7,#e6bc78);color:#493223;box-shadow:0 4px 12px #0004;font:700 15px system-ui,sans-serif;cursor:pointer}
@@ -41,11 +47,12 @@ button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:
 <body>
 <div class="scene">
   <canvas id="game" aria-label="Рисуйте пальцем или мышкой на песочном столе"></canvas>
-  <div class="pattern" id="pattern" aria-label="Образец рисунка">
+  <div class="pattern hidden" id="pattern" aria-label="Образец рисунка">
     <strong>Повтори</strong>
     <svg id="patternSvg" viewBox="0 0 120 90" aria-hidden="true"></svg>
   </div>
 </div>
+<div class="word" id="word" hidden></div>
 <div class="menu" id="menu" aria-label="Выбор игры">
   <button data-mode="0" aria-label="Звук С в начале слова"><img src="s_nachalo.png" alt="Звук С в начале слова"></button>
   <button data-mode="1" aria-label="Звук С в середине слова"><img src="s_seredina.png" alt="Звук С в середине слова"></button>
@@ -57,6 +64,12 @@ button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:
 <div class="controls" id="controls" hidden>
   <button id="reset">Разровнять песок</button>
   <button id="next">Следующий рисунок</button>
+</div>
+<div class="end" id="end" hidden>
+  <div class="end-card">
+    <p>Отлично порисовали!<br>Хочешь ещё?</p>
+    <button id="playAgain">Играть ещё</button>
+  </div>
 </div>
 
 <script>
@@ -71,6 +84,9 @@ const menu=document.getElementById("menu");
 const menuStatus=document.getElementById("menuStatus");
 const backButton=document.getElementById("back");
 const controls=document.getElementById("controls");
+const wordBox=document.getElementById("word");
+const endBox=document.getElementById("end");
+const playAgain=document.getElementById("playAgain");
 
 const patterns={
   wave:{svg:'<path d="M8 46 Q20 14 34 46 T60 46 T86 46 T112 46"/>'},
@@ -79,7 +95,7 @@ const patterns={
   circle:{svg:'<circle cx="60" cy="45" r="28"/>'},
   cloud:{svg:'<path d="M22 65 Q8 65 13 49 Q16 39 29 39 Q29 21 45 23 Q55 13 68 25 Q85 18 89 39 Q108 40 108 54 Q108 67 92 67 Z"/>'},
   triangle:{svg:'<path d="M60 13 L108 75 H12 Z"/>'},
-  bush:{svg:'<path d="M14 73 Q9 52 28 50 Q25 33 43 32 Q50 16 63 24 Q78 15 85 34 Q106 33 105 53 Q117 63 107 73 Z"/>'},
+  star:{svg:'<path d="M60 10 L72 34 L99 38 L80 57 L85 83 L60 70 L35 83 L40 57 L21 38 L48 34 Z"/>'},
   heart:{svg:'<path d="M60 76 Q13 46 18 27 Q25 9 43 19 Q53 25 60 36 Q67 25 77 19 Q95 9 102 27 Q107 46 60 76 Z"/>'},
   balloon:{svg:'<ellipse cx="60" cy="34" rx="27" ry="25"/><path d="M60 59 Q73 66 58 73 Q48 80 61 86"/>'}
 };
@@ -90,7 +106,7 @@ const groups=[[
   {name:"Сова",file:["gitkeep/sova.png","sova.png"],pattern:"circle"},
   {name:"Сумка",file:["gitkeep/sumka.png","sumka.png"],pattern:"cloud"},
   {name:"Санки",file:["gitkeep/sanki.png","sanki.png"],pattern:"triangle"},
-  {name:"Сом",file:["gitkeep/som.png","som.png"],pattern:"bush"},
+  {name:"Сом",file:["gitkeep/som.png","som.png"],pattern:"star"},
   {name:"Самокат",file:["gitkeep/samokat.png","samokat.png"],pattern:"heart"},
   {name:"Сапоги",file:["gitkeep/sapogi.png","sapogi.png"],pattern:"balloon"}
 ],[
@@ -100,7 +116,7 @@ const groups=[[
   {name:"Лиса",file:["gitkeep/lisa.png","lisa.png"],pattern:"circle"},
   {name:"Посуда",file:["gitkeep/posuda1.png","posuda1.png"],pattern:"cloud"},
   {name:"Весы",file:["gitkeep/vesy.png","vesy.png"],pattern:"triangle"},
-  {name:"Бусы",file:["gitkeep/busy.png","busy.png"],pattern:"bush"},
+  {name:"Бусы",file:["gitkeep/busy.png","busy.png"],pattern:"star"},
   {name:"Колесо",file:["gitkeep/koleso.png","koleso.png"],pattern:"heart"},
   {name:"Мясо",file:["gitkeep/myaso.png","myaso.png"],pattern:"balloon"}
 ],[
@@ -110,7 +126,7 @@ const groups=[[
   {name:"Нос",file:["gitkeep/nos1.png","nos1.png"],pattern:"circle"},
   {name:"Компас",file:["gitkeep/kompas.png","kompas.png"],pattern:"cloud"},
   {name:"Ананас",file:["gitkeep/ananas.png","ananas.png"],pattern:"triangle"},
-  {name:"Лес",file:["gitkeep/les.png","les.png"],pattern:"bush"},
+  {name:"Лес",file:["gitkeep/les.png","les.png"],pattern:"star"},
   {name:"Колос",file:["gitkeep/kolos.png","kolos.png"],pattern:"heart"},
   {name:"Фикус",file:["gitkeep/fikus.png","fikus.png"],pattern:"balloon"}
 ],[
@@ -120,7 +136,7 @@ const groups=[[
   {name:"Стул",file:["gitkeep/stul.png","stul.png"],pattern:"circle"},
   {name:"Куст",file:["gitkeep/kust1.png","kust1.png"],pattern:"cloud"},
   {name:"Каска",file:["gitkeep/kaska.png","kaska.png"],pattern:"triangle"},
-  {name:"Краски",file:["gitkeep/kraski.png","kraski.png"],pattern:"bush"},
+  {name:"Краски",file:["gitkeep/kraski.png","kraski.png"],pattern:"star"},
   {name:"Скат",file:["gitkeep/skat.png","skat.png"],pattern:"heart"},
   {name:"Хвост",file:["gitkeep/khvost.png","khvost.png"],pattern:"balloon"}
 ]];
@@ -128,6 +144,7 @@ let modeIndex=-1;
 let rounds=groups[0];
 let loadToken=0;
 let roundIndex=0;
+let currentImage=null,pendingMagic=false,endTimer=null;
 const pane={x:265,y:77,w:425,h:379};
 const radius=15;
 const layer=document.createElement("canvas");
@@ -298,6 +315,7 @@ function showPattern(){
   nextButton.classList.remove("show");
   resetButton.hidden=false;
   canvas.classList.remove("finished");
+  wordBox.hidden=true;
 }
 function resample(points,count=32){
   const distances=[0];
@@ -341,6 +359,18 @@ function matchesPattern(points,kind){
   const length=points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
   if(length<70)return false;
   const first=points[0],last=points[points.length-1];
+  if(kind==="star"){
+    if(w<50||h<40||w/h<.55||w/h>1.8||length<160)return false;
+    let corners=0,lastCorner=-4;
+    for(let i=3;i<sampled.length-3;i++){
+      const a=sampled[i-3],b=sampled[i],c=sampled[i+3];
+      const u=Math.atan2(b.y-a.y,b.x-a.x);
+      const v=Math.atan2(c.y-b.y,c.x-b.x);
+      const turn=Math.abs(Math.atan2(Math.sin(v-u),Math.cos(v-u)));
+      if(turn>.6&&i-lastCorner>3){corners++;lastCorner=i}
+    }
+    return corners>=3||(strokes.length>=3&&corners>=2);
+  }
   if(kind==="square"||kind==="circle"||kind==="triangle"){
     if(w/h<.45||w/h>2.2)return false;
     const gap=Math.hypot(first.x-last.x,first.y-last.y);
@@ -556,7 +586,7 @@ function dogRect(){
 function drawDog(now){
   if(phase!=="magic"&&phase!=="dog")return;
   const rect=dogRect();
-  const picture=rounds[roundIndex].image;
+  const picture=currentImage;
   if(phase==="dog"){
     ctx.drawImage(picture,rect.x,rect.y,rect.size,rect.size);
     return;
@@ -673,8 +703,17 @@ function finishMagic(){
   oldMarks=null;
   canvas.classList.add("finished");
   resetButton.hidden=true;
-  nextButton.textContent=roundIndex===rounds.length-1?"Играть сначала":"Следующий рисунок";
-  nextButton.classList.add("show");
+  wordBox.textContent=rounds[roundIndex].name;
+  wordBox.hidden=false;
+  if(roundIndex===rounds.length-1){
+    nextButton.classList.remove("show");
+    endTimer=setTimeout(()=>{
+      if(phase==="dog"&&modeIndex>=0)endBox.hidden=false;
+    },1500);
+  }else{
+    nextButton.textContent="Следующий рисунок";
+    nextButton.classList.add("show");
+  }
 }
 function moveBrush(from,to){
   const dx=to.x-from.x,dy=to.y-from.y;
@@ -715,7 +754,8 @@ function release(){
     strokes.push(stroke);
     const kind=rounds[roundIndex].pattern;
     if(matchesPattern(combinedStrokes(),kind)){
-      beginMagic(performance.now());
+      if(currentImage)beginMagic(performance.now());
+      else pendingMagic=true;
     }
   }
   drawing=false;
@@ -729,6 +769,9 @@ canvas.addEventListener("pointerleave",()=>{
 });
 function resetRound(){
   if(!ready)return;
+  clearTimeout(endTimer);
+  endBox.hidden=true;
+  pendingMagic=false;
   fillSand();
   phase="draw";
   drawing=false;
@@ -738,33 +781,24 @@ function resetRound(){
   strokes=[];
   showPattern();
 }
-async function openRound(){
+function openRound(){
   const token=++loadToken;
   const round=rounds[roundIndex];
-  phase="loading";
-  drawing=false;
-  visible=false;
-  patternBox.classList.add("hidden");
-  controls.hidden=true;
-  menuStatus.textContent="Загружаем рисунок...";
-  if(!round.image){
-    const picture=new Image();
-    try{await loadFirst(picture,round.file);round.image=picture}
-    catch(error){
-      if(token!==loadToken)return;
-      modeIndex=-1;
-      phase="menu";
-      backButton.hidden=true;
-      menu.hidden=false;
-      menuStatus.textContent="Не найдена картинка: "+round.file[0];
-      console.error(error);
-      return;
-    }
-  }
-  if(token!==loadToken)return;
+  currentImage=null;
   menuStatus.textContent="";
   controls.hidden=false;
   resetRound();
+  const picture=new Image();
+  loadFirst(picture,round.file).then(()=>{
+    if(token!==loadToken)return;
+    currentImage=picture;
+    if(pendingMagic)beginMagic(performance.now());
+  }).catch(error=>{
+    if(token!==loadToken)return;
+    goMenu();
+    menuStatus.textContent="Не найдена картинка: "+round.file[0];
+    console.error(error);
+  });
 }
 function startMode(index){
   if(!ready)return;
@@ -778,10 +812,13 @@ function startMode(index){
 menu.querySelectorAll("[data-mode]").forEach(button=>{
   button.addEventListener("click",()=>startMode(Number(button.dataset.mode)));
 });
-backButton.addEventListener("click",()=>{
+function goMenu(){
   ++loadToken;
+  clearTimeout(endTimer);
   modeIndex=-1;
   phase="menu";
+  currentImage=null;
+  pendingMagic=false;
   drawing=false;
   visible=false;
   flying=[];
@@ -790,11 +827,16 @@ backButton.addEventListener("click",()=>{
   backButton.hidden=true;
   controls.hidden=true;
   patternBox.classList.add("hidden");
+  wordBox.hidden=true;
+  endBox.hidden=true;
   canvas.classList.remove("finished");
-});
+}
+backButton.addEventListener("click",goMenu);
+playAgain.addEventListener("click",goMenu);
 resetButton.addEventListener("click",resetRound);
 nextButton.addEventListener("click",()=>{
-  roundIndex=(roundIndex+1)%rounds.length;
+  if(roundIndex>=rounds.length-1)return;
+  roundIndex++;
   openRound();
 });
 function render(now){
