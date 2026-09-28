@@ -11,6 +11,14 @@ body{min-height:100svh;background:#111536;font-family:system-ui,Arial,sans-serif
 .scene{position:fixed;inset:0;width:100vw;height:100dvh;overflow:hidden;touch-action:none;user-select:none}
 canvas{display:block;width:100%;height:100%;touch-action:none;cursor:none}
 canvas.finished{cursor:default}
+.menu{position:fixed;z-index:4;inset:0;display:grid;place-content:center;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(8px,2vw,26px);width:min(90vw,840px);margin:auto;pointer-events:none}
+.menu[hidden]{display:none}
+.menu button{display:block;width:100%;height:auto;min-height:0;padding:0;border:0;background:none;box-shadow:none;line-height:0;pointer-events:auto;transition:transform .2s,filter .2s}
+.menu button:hover,.menu button:focus-visible{transform:scale(1.045);filter:brightness(1.1);outline:none}
+.menu img{display:block;width:100%;height:auto}
+.menu-status{position:fixed;z-index:5;bottom:clamp(8px,3vh,24px);left:5vw;right:5vw;text-align:center;color:#fff5de;text-shadow:0 2px 5px #17114a;font-size:14px;pointer-events:none}
+.back{position:fixed;z-index:3;right:clamp(8px,2vw,24px);top:clamp(8px,2vh,20px);font-size:13px;padding:7px 13px;min-height:38px}
+.back[hidden],.controls[hidden]{display:none}
 .controls{position:fixed;z-index:2;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
 .controls button{pointer-events:auto}
 .controls button[hidden]{display:none}
@@ -25,6 +33,8 @@ button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:
   button{font-size:13px}
   .pattern{top:52%;left:5px;padding:5px;border-radius:10px;width:72px}
   .pattern strong{font-size:10px}
+  .menu{width:96vw;gap:4px}
+  .back{font-size:11px;min-height:34px}
 }
 </style>
 </head>
@@ -36,7 +46,15 @@ button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:
     <svg id="patternSvg" viewBox="0 0 120 90" aria-hidden="true"></svg>
   </div>
 </div>
-<div class="controls">
+<div class="menu" id="menu" aria-label="Выбор игры">
+  <button data-mode="0" aria-label="Звук С в начале слова"><img src="s_nachalo.png" alt="Звук С в начале слова"></button>
+  <button data-mode="1" aria-label="Звук С в середине слова"><img src="s_seredina.png" alt="Звук С в середине слова"></button>
+  <button data-mode="2" aria-label="Звук С в конце слова"><img src="s_konec.png" alt="Звук С в конце слова"></button>
+  <button data-mode="3" aria-label="Звук С в стечениях"><img src="s_stecheniya.png" alt="Звук С в стечениях"></button>
+</div>
+<div class="menu-status" id="menuStatus" role="status"></div>
+<button class="back" id="back" hidden>В меню</button>
+<div class="controls" id="controls" hidden>
   <button id="reset">Разровнять песок</button>
   <button id="next">Следующий рисунок</button>
 </div>
@@ -49,6 +67,10 @@ const patternBox=document.getElementById("pattern");
 const patternSvg=document.getElementById("patternSvg");
 const nextButton=document.getElementById("next");
 const resetButton=document.getElementById("reset");
+const menu=document.getElementById("menu");
+const menuStatus=document.getElementById("menuStatus");
+const backButton=document.getElementById("back");
+const controls=document.getElementById("controls");
 
 const patterns={
   wave:{svg:'<path d="M8 46 Q20 14 34 46 T60 46 T86 46 T112 46"/>'},
@@ -61,7 +83,7 @@ const patterns={
   heart:{svg:'<path d="M60 76 Q13 46 18 27 Q25 9 43 19 Q53 25 60 36 Q67 25 77 19 Q95 9 102 27 Q107 46 60 76 Z"/>'},
   balloon:{svg:'<ellipse cx="60" cy="34" rx="27" ry="25"/><path d="M60 59 Q73 66 58 73 Q48 80 61 86"/>'}
 };
-const rounds=[
+const groups=[[
   {name:"Собака",file:["gitkeep/dog.png","sobaka.png"],pattern:"smile"},
   {name:"Самолёт",file:["gitkeep/samolet.png","samolet.png"],pattern:"wave"},
   {name:"Сундук",file:["gitkeep/sunduk.png","sunduk.png"],pattern:"square"},
@@ -71,7 +93,40 @@ const rounds=[
   {name:"Сом",file:["gitkeep/som.png","som.png"],pattern:"bush"},
   {name:"Самокат",file:["gitkeep/samokat.png","samokat.png"],pattern:"heart"},
   {name:"Сапоги",file:["gitkeep/sapogi.png","sapogi.png"],pattern:"balloon"}
-];
+],[
+  {name:"Оса",file:["gitkeep/osa.png","osa.png"],pattern:"smile"},
+  {name:"Носок",file:["gitkeep/nosok.png","nosok.png"],pattern:"wave"},
+  {name:"Усы",file:["gitkeep/usy.png","usy.png"],pattern:"square"},
+  {name:"Лиса",file:["gitkeep/lisa.png","lisa.png"],pattern:"circle"},
+  {name:"Посуда",file:["gitkeep/posuda1.png","posuda1.png"],pattern:"cloud"},
+  {name:"Весы",file:["gitkeep/vesy.png","vesy.png"],pattern:"triangle"},
+  {name:"Бусы",file:["gitkeep/busy.png","busy.png"],pattern:"bush"},
+  {name:"Колесо",file:["gitkeep/koleso.png","koleso.png"],pattern:"heart"},
+  {name:"Мясо",file:["gitkeep/myaso.png","myaso.png"],pattern:"balloon"}
+],[
+  {name:"Автобус",file:["gitkeep/avtobus.png","avtobus.png"],pattern:"smile"},
+  {name:"Кактус",file:["gitkeep/kaktus.png","kaktus.png"],pattern:"wave"},
+  {name:"Кокос",file:["gitkeep/kokos.png","kokos.png"],pattern:"square"},
+  {name:"Нос",file:["gitkeep/nos1.png","nos1.png"],pattern:"circle"},
+  {name:"Компас",file:["gitkeep/kompas.png","kompas.png"],pattern:"cloud"},
+  {name:"Ананас",file:["gitkeep/ananas.png","ananas.png"],pattern:"triangle"},
+  {name:"Лес",file:["gitkeep/les.png","les.png"],pattern:"bush"},
+  {name:"Колос",file:["gitkeep/kolos.png","kolos.png"],pattern:"heart"},
+  {name:"Фикус",file:["gitkeep/fikus.png","fikus.png"],pattern:"balloon"}
+],[
+  {name:"Капуста",file:["gitkeep/kapusta.png","kapusta.png"],pattern:"smile"},
+  {name:"Маска",file:["gitkeep/maska.png","maska.png"],pattern:"wave"},
+  {name:"Мост",file:["gitkeep/most.png","most.png"],pattern:"square"},
+  {name:"Стул",file:["gitkeep/stul.png","stul.png"],pattern:"circle"},
+  {name:"Куст",file:["gitkeep/kust1.png","kust1.png"],pattern:"cloud"},
+  {name:"Каска",file:["gitkeep/kaska.png","kaska.png"],pattern:"triangle"},
+  {name:"Краски",file:["gitkeep/kraski.png","kraski.png"],pattern:"bush"},
+  {name:"Скат",file:["gitkeep/skat.png","skat.png"],pattern:"heart"},
+  {name:"Хвост",file:["gitkeep/khvost.png","khvost.png"],pattern:"balloon"}
+]];
+let modeIndex=-1;
+let rounds=groups[0];
+let loadToken=0;
 let roundIndex=0;
 const pane={x:265,y:77,w:425,h:379};
 const radius=15;
@@ -86,7 +141,7 @@ const sparkle=new Image();
 const brush=new Image();
 let ready=false,drawing=false,visible=false,last=null;
 let pointer={x:0,y:0},flying=[];
-let phase="draw",magicStart=0,oldMarks=null,stroke=[],strokes=[];
+let phase="menu",magicStart=0,oldMarks=null,stroke=[],strokes=[];
 
 const traces=[
   {start:0,duration:.29,points:[[180,340],[225,270],[290,230],[340,280],[335,340],[295,405],[220,445]]},
@@ -490,7 +545,7 @@ function dogRect(){
   return{x:pane.x+(pane.w-size)/2,y:pane.y+(pane.h-size)/2,size};
 }
 function drawDog(now){
-  if(phase==="draw")return;
+  if(phase!=="magic"&&phase!=="dog")return;
   const rect=dogRect();
   const picture=rounds[roundIndex].image;
   if(phase==="dog"){
@@ -501,42 +556,51 @@ function drawDog(now){
   const progress=clamp01((elapsed-180)/1950);
   if(progress<=0)return;
   maskCtx.clearRect(0,0,512,512);
-  maskCtx.save();
-  maskCtx.scale(512/1254,512/1254);
-  maskCtx.strokeStyle="#fff";
-  maskCtx.fillStyle="#fff";
-  maskCtx.lineWidth=125;
-  maskCtx.lineCap="round";
-  maskCtx.lineJoin="round";
-  for(const trace of activeTraces()){
-    const t=clamp01((progress-trace.start)/trace.duration);
-    if(t<=0)continue;
-    const pts=trace.points,lengths=[];
-    let total=0;
-    for(let i=1;i<pts.length;i++){
-      const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
-      lengths.push(d);
-      total+=d;
-    }
-    let remaining=total*t;
-    maskCtx.beginPath();
-    maskCtx.moveTo(pts[0][0],pts[0][1]);
-    for(let i=0;i<lengths.length&&remaining>0;i++){
-      const f=Math.min(1,remaining/(lengths[i]||1));
-      maskCtx.lineTo(
-        pts[i][0]+(pts[i+1][0]-pts[i][0])*f,
-        pts[i][1]+(pts[i+1][1]-pts[i][1])*f
-      );
-      remaining-=lengths[i];
-    }
-    maskCtx.stroke();
-    if(total===0){
+  if(modeIndex>0){
+    const edge=progress*420;
+    const light=maskCtx.createRadialGradient(256,256,Math.max(0,edge-70),256,256,Math.max(1,edge));
+    light.addColorStop(0,"#fff");
+    light.addColorStop(1,"rgba(255,255,255,0)");
+    maskCtx.fillStyle=light;
+    maskCtx.fillRect(0,0,512,512);
+  }else{
+    maskCtx.save();
+    maskCtx.scale(512/1254,512/1254);
+    maskCtx.strokeStyle="#fff";
+    maskCtx.fillStyle="#fff";
+    maskCtx.lineWidth=125;
+    maskCtx.lineCap="round";
+    maskCtx.lineJoin="round";
+    for(const trace of activeTraces()){
+      const t=clamp01((progress-trace.start)/trace.duration);
+      if(t<=0)continue;
+      const pts=trace.points,lengths=[];
+      let total=0;
+      for(let i=1;i<pts.length;i++){
+        const d=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+        lengths.push(d);
+        total+=d;
+      }
+      let remaining=total*t;
       maskCtx.beginPath();
-      maskCtx.arc(pts[0][0],pts[0][1],62,0,Math.PI*2);
-      maskCtx.fill();
+      maskCtx.moveTo(pts[0][0],pts[0][1]);
+      for(let i=0;i<lengths.length&&remaining>0;i++){
+        const f=Math.min(1,remaining/(lengths[i]||1));
+        maskCtx.lineTo(
+          pts[i][0]+(pts[i+1][0]-pts[i][0])*f,
+          pts[i][1]+(pts[i+1][1]-pts[i][1])*f
+        );
+        remaining-=lengths[i];
+      }
+      maskCtx.stroke();
+      if(total===0){
+        maskCtx.beginPath();
+        maskCtx.arc(pts[0][0],pts[0][1],62,0,Math.PI*2);
+        maskCtx.fill();
+      }
     }
+    maskCtx.restore();
   }
-  maskCtx.restore();
   revealCtx.clearRect(0,0,512,512);
   revealCtx.globalCompositeOperation="source-over";
   revealCtx.drawImage(picture,0,0,512,512);
@@ -553,6 +617,11 @@ function drawDog(now){
 }
 function drawMagic(now){
   if(phase!=="magic")return;
+  if(modeIndex>0){
+    drawMagicRadial(now);
+    if(now-magicStart>2300)finishMagic();
+    return;
+  }
   const progress=clamp01((now-magicStart-180)/1950);
   const rect=dogRect();
   ctx.save();
@@ -603,6 +672,41 @@ function drawMagic(now){
   }
   ctx.restore();
   if(now-magicStart>2300)finishMagic();
+}
+function drawMagicRadial(now){
+  const progress=clamp01((now-magicStart-180)/1950);
+  const rect=dogRect();
+  const cx=rect.x+rect.size/2,cy=rect.y+rect.size/2;
+  ctx.save();
+  ctx.translate(offsetX,offsetY);
+  ctx.scale(scale,scale);
+  ctx.beginPath();
+  ctx.roundRect(pane.x,pane.y,pane.w,pane.h,7);
+  ctx.clip();
+  for(let i=0;i<24;i++){
+    const t=(progress-i*.012)/.7;
+    if(t<=0||t>=1)continue;
+    const angle=i*2.399+Math.sin(now*.001+i)*.07;
+    const distance=t*rect.size*.62;
+    const x=cx+Math.cos(angle)*distance;
+    const y=cy+Math.sin(angle)*distance;
+    const a=Math.min(1,t*6,(1-t)*5);
+    const size=i%5===0?29:18;
+    const halo=ctx.createRadialGradient(x,y,0,x,y,size);
+    halo.addColorStop(0,"rgba(255,250,214,.85)");
+    halo.addColorStop(.4,"rgba(255,211,130,.4)");
+    halo.addColorStop(1,"rgba(255,211,130,0)");
+    ctx.globalAlpha=a*.75;
+    ctx.fillStyle=halo;
+    ctx.beginPath();ctx.arc(x,y,size,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=a;
+    if(sparkle.complete&&sparkle.naturalWidth){
+      ctx.drawImage(sparkle,x-size/2,y-size/2,size,size);
+    }else{
+      ctx.fillStyle="#fff3bb";ctx.beginPath();ctx.arc(x,y,2,0,Math.PI*2);ctx.fill();
+    }
+  }
+  ctx.restore();
 }
 function finishMagic(){
   phase="dog";
@@ -674,73 +778,126 @@ function resetRound(){
   strokes=[];
   showPattern();
 }
+async function openRound(){
+  const token=++loadToken;
+  const round=rounds[roundIndex];
+  phase="loading";
+  drawing=false;
+  visible=false;
+  patternBox.classList.add("hidden");
+  controls.hidden=true;
+  menuStatus.textContent="Загружаем рисунок...";
+  if(!round.image){
+    const picture=new Image();
+    try{await loadFirst(picture,round.file);round.image=picture}
+    catch(error){
+      if(token!==loadToken)return;
+      modeIndex=-1;
+      phase="menu";
+      backButton.hidden=true;
+      menu.hidden=false;
+      menuStatus.textContent="Не найдена картинка: "+round.file[0];
+      console.error(error);
+      return;
+    }
+  }
+  if(token!==loadToken)return;
+  menuStatus.textContent="";
+  controls.hidden=false;
+  resetRound();
+}
+function startMode(index){
+  if(!ready)return;
+  modeIndex=index;
+  rounds=groups[index];
+  roundIndex=0;
+  menu.hidden=true;
+  backButton.hidden=false;
+  openRound();
+}
+menu.querySelectorAll("[data-mode]").forEach(button=>{
+  button.addEventListener("click",()=>startMode(Number(button.dataset.mode)));
+});
+backButton.addEventListener("click",()=>{
+  ++loadToken;
+  modeIndex=-1;
+  phase="menu";
+  drawing=false;
+  visible=false;
+  flying=[];
+  menuStatus.textContent="";
+  menu.hidden=false;
+  backButton.hidden=true;
+  controls.hidden=true;
+  patternBox.classList.add("hidden");
+  canvas.classList.remove("finished");
+});
 resetButton.addEventListener("click",resetRound);
 nextButton.addEventListener("click",()=>{
   roundIndex=(roundIndex+1)%rounds.length;
-  resetRound();
+  openRound();
 });
 function render(now){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   if(ready){
     drawBackground();
-    ctx.save();
-    ctx.translate(offsetX,offsetY);
-    ctx.scale(scale,scale);
-    ctx.drawImage(table,0,0,960,540);
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(pane.x,pane.y,pane.w,pane.h,7);
-    ctx.clip();
-    ctx.drawImage(layer,pane.x,pane.y);
-    if(phase==="magic"&&oldMarks){
-      const fade=1-clamp01((now-magicStart-100)/650);
-      ctx.globalAlpha=fade;
-      ctx.drawImage(oldMarks,pane.x,pane.y);
-      ctx.globalAlpha=1;
-    }
-    drawDog(now);
-    ctx.restore();
-    drawMovingGrains();
-    if(visible&&inside(pointer.x,pointer.y)){
+    if(modeIndex>=0){
       ctx.save();
-      ctx.translate(pointer.x,pointer.y);
-      ctx.rotate(-.45);
-      if(brush.complete&&brush.naturalWidth){
-        ctx.drawImage(brush,400,0,224,1536,-8,-55,16,58);
-      }else{
-        ctx.shadowColor="#3b261b77";
-        ctx.shadowBlur=4;
-        ctx.fillStyle="#8d5b32";
-        ctx.fillRect(-3,-34,6,26);
-        ctx.fillStyle="#d2b486";
-        ctx.beginPath();
-        ctx.moveTo(-5,-8);
-        ctx.lineTo(5,-8);
-        ctx.lineTo(1,1);
-        ctx.fill();
+      ctx.translate(offsetX,offsetY);
+      ctx.scale(scale,scale);
+      ctx.drawImage(table,0,0,960,540);
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(pane.x,pane.y,pane.w,pane.h,7);
+      ctx.clip();
+      ctx.drawImage(layer,pane.x,pane.y);
+      if(phase==="magic"&&oldMarks){
+        const fade=1-clamp01((now-magicStart-100)/650);
+        ctx.globalAlpha=fade;
+        ctx.drawImage(oldMarks,pane.x,pane.y);
+        ctx.globalAlpha=1;
+      }
+      drawDog(now);
+      ctx.restore();
+      drawMovingGrains();
+      if(visible&&inside(pointer.x,pointer.y)){
+        ctx.save();
+        ctx.translate(pointer.x,pointer.y);
+        ctx.rotate(-.45);
+        if(brush.complete&&brush.naturalWidth){
+          ctx.drawImage(brush,400,0,224,1536,-8,-55,16,58);
+        }else{
+          ctx.shadowColor="#3b261b77";
+          ctx.shadowBlur=4;
+          ctx.fillStyle="#8d5b32";
+          ctx.fillRect(-3,-34,6,26);
+          ctx.fillStyle="#d2b486";
+          ctx.beginPath();
+          ctx.moveTo(-5,-8);
+          ctx.lineTo(5,-8);
+          ctx.lineTo(1,1);
+          ctx.fill();
+        }
+        ctx.restore();
       }
       ctx.restore();
+      drawMagic(now);
     }
-    ctx.restore();
-    drawMagic(now);
   }
   requestAnimationFrame(render);
 }
 Promise.all([
   load(floor,"fon1.png"),
   load(table,"stol1.png"),
-  load(texture,"pesok.png"),
-  ...rounds.map(async round=>{
-    round.image=new Image();
-    await loadFirst(round.image,round.file);
-  })
+  load(texture,"pesok.png")
 ]).then(()=>{
   fillSand();
   ready=true;
-  showPattern();
+  patternBox.classList.add("hidden");
   loadFirst(sparkle,["blik.png","gitkeep/blik.png"]).catch(()=>{});
   load(brush,"brush.png").catch(()=>{});
 }).catch(error=>{
+  menuStatus.textContent=error.message;
   console.error(error);
 });
 requestAnimationFrame(render);
