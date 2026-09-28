@@ -1,10 +1,36 @@
+Убрала надпись «Можно рисовать по частям». Рисовать несколькими движениями по-прежнему можно. Ниже весь index.html: удали прежний текст в GitHub и вставь этот блок целиком. Синтаксис проверен.
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Волшебный песочный стол</title>
-<style>*{box-sizing:border-box}html,body{margin:0;min-height:100%}body{min-height:100svh;background:#111536;font-family:system-ui,Arial,sans-serif;overflow:hidden}.scene{position:fixed;inset:0;width:100vw;height:100dvh;overflow:hidden;touch-action:none;user-select:none}canvas{display:block;width:100%;height:100%;touch-action:none;cursor:none}canvas.finished{cursor:default}.hint{position:absolute;top:2%;left:2%;max-width:43%;padding:8px 12px;border-radius:11px;background:#fff2d4e8;color:#4b3324;font-size:clamp(11px,1.3vw,16px);line-height:1.3;pointer-events:none}.controls{position:fixed;z-index:2;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}.controls button{pointer-events:auto}.controls button[hidden]{display:none}.pattern{position:absolute;z-index:2;left:clamp(8px,2vw,24px);top:50%;transform:translateY(-50%);width:clamp(82px,15vw,150px);padding:10px;border:1px solid #cbb8ee99;border-radius:17px;background:#63518b99;color:#fff7ec;text-align:center;box-shadow:0 8px 25px #080c3077;pointer-events:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}.pattern svg{display:block;width:100%;height:auto;stroke:#ffdea5;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;fill:none}.pattern strong{display:block;font-size:clamp(11px,1.4vw,16px)}.pattern small{display:block;font-size:clamp(9px,1vw,12px)}.pattern.hidden{display:none}#next{display:none}#next.show{display:block}button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:13px;background:linear-gradient(#fff0c7,#e6bc78);color:#493223;box-shadow:0 4px 12px #0004;font:700 15px system-ui,sans-serif;cursor:pointer}@media(max-width:600px){.hint{padding:5px 7px;border-radius:7px;font-size:9px}button{font-size:13px}.pattern{top:52%;left:5px;padding:5px;border-radius:10px;width:72px}.pattern strong{font-size:10px}.pattern small{font-size:8px}}</style>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{min-height:100svh;background:#111536;font-family:system-ui,Arial,sans-serif;overflow:hidden}
+.scene{position:fixed;inset:0;width:100vw;height:100dvh;overflow:hidden;touch-action:none;user-select:none}
+canvas{display:block;width:100%;height:100%;touch-action:none;cursor:none}
+canvas.finished{cursor:default}
+.hint{position:absolute;top:2%;left:2%;max-width:43%;padding:8px 12px;border-radius:11px;background:#fff2d4e8;color:#4b3324;font-size:clamp(11px,1.3vw,16px);line-height:1.3;pointer-events:none}
+.controls{position:fixed;z-index:2;left:0;right:0;bottom:max(12px,env(safe-area-inset-bottom));display:flex;justify-content:center;pointer-events:none}
+.controls button{pointer-events:auto}
+.controls button[hidden]{display:none}
+.pattern{position:absolute;z-index:2;left:clamp(8px,2vw,24px);top:50%;transform:translateY(-50%);width:clamp(82px,15vw,150px);padding:10px;border:1px solid #cbb8ee99;border-radius:17px;background:#63518b99;color:#fff7ec;text-align:center;box-shadow:0 8px 25px #080c3077;pointer-events:none;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.pattern svg{display:block;width:100%;height:auto;stroke:#ffdea5;stroke-width:7;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.pattern strong{display:block;font-size:clamp(11px,1.4vw,16px)}
+.pattern.hidden{display:none}
+#next{display:none}
+#next.show{display:block}
+button{min-height:44px;padding:10px 20px;border:1px solid #e6c98d;border-radius:13px;background:linear-gradient(#fff0c7,#e6bc78);color:#493223;box-shadow:0 4px 12px #0004;font:700 15px system-ui,sans-serif;cursor:pointer}
+@media(max-width:600px){
+  .hint{padding:5px 7px;border-radius:7px;font-size:9px}
+  button{font-size:13px}
+  .pattern{top:52%;left:5px;padding:5px;border-radius:10px;width:72px}
+  .pattern strong{font-size:10px}
+}
+</style>
 </head>
 <body>
 <div class="scene">
@@ -13,7 +39,6 @@
   <div class="pattern" id="pattern" aria-label="Образец рисунка">
     <strong>Повтори</strong>
     <svg id="patternSvg" viewBox="0 0 120 90" aria-hidden="true"></svg>
-    <small id="patternHelp">Можно рисовать по частям</small>
   </div>
 </div>
 <div class="controls">
@@ -22,126 +47,153 @@
 </div>
 <script>
 "use strict";
-const canvas=document.getElementById("game"),ctx=canvas.getContext("2d"),hint=document.getElementById("hint"),patternBox=document.getElementById("pattern"),patternSvg=document.getElementById("patternSvg"),patternHelp=document.getElementById("patternHelp"),nextButton=document.getElementById("next"),resetButton=document.getElementById("reset");
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const hint=document.getElementById("hint");
+const patternBox=document.getElementById("pattern");
+const patternSvg=document.getElementById("patternSvg");
+const nextButton=document.getElementById("next");
+const resetButton=document.getElementById("reset");
 const patterns={
-wave:'<path d="M8 46 Q20 14 34 46 T60 46 T86 46 T112 46"/>',
-square:'<path d="M33 17 H87 V73 H33 Z"/>',
-smile:'<path d="M14 26 Q60 88 106 26"/>',
-zigzag:'<path d="M10 72 L35 18 L60 72 L85 18 L110 72"/>',
-arch:'<path d="M12 72 Q60 -16 108 72"/>'
+  smile:'<path d="M14 26 Q60 88 106 26"/>',
+  wave:'<path d="M8 46 Q20 14 34 46 T60 46 T86 46 T112 46"/>',
+  square:'<path d="M33 17 H87 V73 H33 Z"/>',
+  circle:'<circle cx="60" cy="45" r="28"/>',
+  cloud:'<path d="M22 65 Q8 65 13 49 Q16 39 29 39 Q29 21 45 23 Q55 13 68 25 Q85 18 89 39 Q108 40 108 54 Q108 67 92 67 Z"/>',
+  triangle:'<path d="M60 13 L108 75 H12 Z"/>',
+  bush:'<path d="M14 73 Q9 52 28 50 Q25 33 43 32 Q50 16 63 24 Q78 15 85 34 Q106 33 105 53 Q117 63 107 73 Z"/>',
+  heart:'<path d="M60 76 Q13 46 18 27 Q25 9 43 19 Q53 25 60 36 Q67 25 77 19 Q95 9 102 27 Q107 46 60 76 Z"/>',
+  balloon:'<ellipse cx="60" cy="34" rx="27" ry="25"/><path d="M60 59 Q73 66 58 73 Q48 80 61 86"/>'
 };
 const rounds=[
-{name:"Собака",file:["gitkeep/dog.png","sobaka.png"],pattern:"smile"},
-{name:"Самолёт",file:["gitkeep/samolet.png","samolet.png"],pattern:"wave"},
-{name:"Сундук",file:["gitkeep/sunduk.png","sunduk.png"],pattern:"square"},
-{name:"Сова",file:["gitkeep/sova.png","sova.png"],pattern:"zigzag"},
-{name:"Сумка",file:["gitkeep/sumka.png","sumka.png"],pattern:"arch"},
-{name:"Санки",file:["gitkeep/sanki.png","sanki.png"],pattern:"wave"},
-{name:"Сом",file:["gitkeep/som.png","som.png"],pattern:"square"},
-{name:"Самокат",file:["gitkeep/samokat.png","samokat.png"],pattern:"smile"},
-{name:"Сапоги",file:["gitkeep/sapogi.png","sapogi.png"],pattern:"zigzag"}
+  {name:"Собака",file:["gitkeep/dog.png","sobaka.png"],pattern:"smile"},
+  {name:"Самолёт",file:["gitkeep/samolet.png","samolet.png"],pattern:"wave"},
+  {name:"Сундук",file:["gitkeep/sunduk.png","sunduk.png"],pattern:"square"},
+  {name:"Сова",file:["gitkeep/sova.png","sova.png"],pattern:"circle"},
+  {name:"Сумка",file:["gitkeep/sumka.png","sumka.png"],pattern:"cloud"},
+  {name:"Санки",file:["gitkeep/sanki.png","sanki.png"],pattern:"triangle"},
+  {name:"Сом",file:["gitkeep/som.png","som.png"],pattern:"bush"},
+  {name:"Самокат",file:["gitkeep/samokat.png","samokat.png"],pattern:"heart"},
+  {name:"Сапоги",file:["gitkeep/sapogi.png","sapogi.png"],pattern:"balloon"}
 ];
-let roundIndex=0,ready=false,drawing=false,visible=false,last=null,pointer={x:0,y:0},flying=[],phase="draw",magicStart=0,oldMarks=null,stroke=[],strokes=[],scale=1,offsetX=0,offsetY=0;
-const pane={x:265,y:77,w:425,h:379},radius=17;
-const layer=document.createElement("canvas");layer.width=pane.w;layer.height=pane.h;
-const sand=layer.getContext("2d"),floor=new Image(),table=new Image(),texture=new Image(),sparkle=new Image();
+let roundIndex=0;
+const pane={x:265,y:77,w:425,h:379};
+const radius=17;
+const layer=document.createElement("canvas");
+layer.width=pane.w;
+layer.height=pane.h;
+const sand=layer.getContext("2d");
+const floor=new Image();
+const table=new Image();
+const texture=new Image();
+const sparkle=new Image();
+let ready=false,drawing=false,visible=false,last=null;
+let pointer={x:0,y:0},flying=[],phase="draw",magicStart=0,oldMarks=null;
+let stroke=[],strokes=[],scale=1,offsetX=0,offsetY=0;
 const traces=[
-{start:0,duration:.29,points:[[180,340],[225,270],[290,230],[340,280],[335,340],[295,405],[220,445]]},
-{start:.07,duration:.30,points:[[250,445],[185,445],[155,500],[185,550],[250,555],[310,520],[340,480]]},
-{start:.12,duration:.32,points:[[335,295],[410,285],[485,310],[560,350],[650,390]]},
-{start:.25,duration:.29,points:[[585,360],[640,400],[690,475],[685,535],[650,565],[605,525],[570,460],[565,390]]},
-{start:.33,duration:.34,points:[[320,535],[365,590],[385,685],[385,780],[370,880],[320,985],[265,1030],[320,1050],[385,1020],[430,945]]},
-{start:.43,duration:.32,points:[[385,775],[470,810],[520,875],[545,965],[520,1030],[570,1050],[620,1035],[650,930]]},
-{start:.46,duration:.37,points:[[690,600],[780,620],[875,630],[955,615],[1030,560],[1080,470],[1075,390],[1035,345]]},
-{start:.59,duration:.28,points:[[645,920],[750,915],[840,865],[880,915],[915,955],[885,1025],[945,1040]]},
-{start:.68,duration:.25,points:[[930,665],[980,750],[1030,855],[1065,960],[1035,1030],[1080,1050],[1130,1030]]},
-{start:.08,duration:.13,points:[[350,390],[335,390]]},
-{start:.22,duration:.12,points:[[445,445],[440,445]]},
-{start:.18,duration:.12,points:[[200,490],[200,490]]}
+  {start:0,duration:.29,points:[[180,340],[225,270],[290,230],[340,280],[335,340],[295,405],[220,445]]},
+  {start:.07,duration:.30,points:[[250,445],[185,445],[155,500],[185,550],[250,555],[310,520],[340,480]]},
+  {start:.12,duration:.32,points:[[335,295],[410,285],[485,310],[560,350],[650,390]]},
+  {start:.25,duration:.29,points:[[585,360],[640,400],[690,475],[685,535],[650,565],[605,525],[570,460],[565,390]]},
+  {start:.33,duration:.34,points:[[320,535],[365,590],[385,685],[385,780],[370,880],[320,985],[265,1030],[320,1050],[385,1020],[430,945]]},
+  {start:.43,duration:.32,points:[[385,775],[470,810],[520,875],[545,965],[520,1030],[570,1050],[620,1035],[650,930]]},
+  {start:.46,duration:.37,points:[[690,600],[780,620],[875,630],[955,615],[1030,560],[1080,470],[1075,390],[1035,345]]},
+  {start:.59,duration:.28,points:[[645,920],[750,915],[840,865],[880,915],[915,955],[885,1025],[945,1040]]},
+  {start:.68,duration:.25,points:[[930,665],[980,750],[1030,855],[1065,960],[1035,1030],[1080,1050],[1130,1030]]},
+  {start:.08,duration:.13,points:[[350,390],[335,390]]},
+  {start:.22,duration:.12,points:[[445,445],[440,445]]},
+  {start:.18,duration:.12,points:[[200,490],[200,490]]}
 ];
 const picturePaths=[
-null,
-[
-[[325,880],[430,790],[540,675],[670,540],[810,410],[960,285],[1050,260],[1065,330],[985,425],[845,545],[700,675],[560,805],[425,920]],
-[[650,560],[525,475],[380,390],[250,300],[290,275],[440,340],[615,435]],
-[[735,675],[860,780],[990,940],[1070,1010],[1040,930],[900,735]],
-[[425,805],[275,735],[225,700],[285,780],[400,875]],
-[[500,900],[530,1005],[490,1045],[445,970]],
-[[650,650],[730,570],[815,490],[910,405]]
-],
-[
-[[180,565],[190,420],[275,275],[380,220],[510,250],[700,255],[900,270],[1040,330],[1100,505]],
-[[190,565],[430,625],[800,680],[1110,590]],
-[[185,590],[190,920],[470,995],[830,1060],[1090,940],[1100,610]],
-[[440,260],[380,430],[390,580]],
-[[830,270],[790,430],[820,620]],
-[[470,640],[485,755],[525,770],[555,685]],
-[[205,950],[460,980],[790,1045],[1080,955]]
-],
-[
-[[300,190],[290,75],[380,175],[520,190],[650,195],[800,180],[940,75],[950,250]],
-[[300,190],[220,340],[220,520],[285,630],[340,735],[400,930],[560,1020],[750,1020],[900,920],[970,700],[1000,500],[950,250]],
-[[350,380],[410,295],[500,315],[560,395],[530,500],[440,530],[350,460],[350,380]],
-[[700,380],[765,295],[855,315],[910,400],[870,510],[775,530],[700,450],[700,380]],
-[[590,475],[640,555],[690,475]],
-[[300,650],[180,810],[210,900],[345,800],[405,650]],
-[[900,650],[1030,815],[1010,900],[880,805]],
-[[470,1020],[445,1150],[570,1150]],
-[[790,1020],[760,1150],[870,1150]]
-],
-[
-[[380,500],[390,340],[450,210],[560,130],[675,130],[790,210],[850,360],[870,510]],
-[[210,505],[250,1040],[380,1110],[930,1110],[1060,1040],[1080,515]],
-[[210,505],[385,475],[870,475],[1080,515]],
-[[415,485],[415,600],[475,610],[475,510]],
-[[815,505],[815,605],[875,610],[875,515]],
-[[430,720],[840,720],[850,1000],[425,1000],[430,720]]
-],
-[
-[[250,500],[395,485],[535,465],[670,450],[800,430],[940,425],[1080,505]],
-[[300,565],[490,555],[680,535],[870,515],[1050,550]],
-[[315,620],[510,605],[710,590],[900,570],[1080,610]],
-[[405,650],[340,865],[470,900],[650,900],[800,900],[1000,865],[1095,765]],
-[[540,665],[545,805]],[[835,635],[855,800]],
-[[170,360],[200,470],[170,650],[95,780],[155,870]]
-],
-[
-[[155,700],[260,555],[435,500],[660,510],[860,550],[1050,535],[1150,350]],
-[[155,700],[330,760],[510,780],[700,820],[880,785],[1050,700],[1150,895]],
-[[535,505],[650,330],[710,285],[755,510]],
-[[280,750],[220,850],[125,940]],
-[[350,770],[435,925],[530,985]],
-[[540,785],[600,875],[670,840]],
-[[1040,700],[1150,850],[1180,690],[1160,480]]
-],
-[
-[[200,230],[400,235],[620,250],[780,245]],
-[[445,255],[400,420],[355,630],[350,820]],
-[[355,820],[465,985],[695,1000],[955,995]],
-[[270,1020],[285,920],[370,875],[455,920],[470,1025],[380,1100],[285,1060],[270,1020]],
-[[900,1010],[920,915],[1035,865],[1120,950],[1090,1060],[995,1100],[900,1010]],
-[[420,815],[510,955]],
-[[480,1010],[710,1010],[930,1015]]
-],
-[
-[[280,255],[450,235],[560,255],[535,460],[545,750],[605,925],[565,1010],[340,1055],[130,1020],[120,925],[285,860],[310,620],[280,255]],
-[[325,320],[500,330]],
-[[150,965],[320,1005],[540,985]],
-[[780,255],[965,235],[1090,255],[1065,490],[1070,755],[1130,930],[1085,1010],[835,1055],[690,1015],[690,920],[790,860],[800,610],[780,255]],
-[[820,325],[1040,330]],
-[[710,970],[850,1010],[1090,990]]
-]
+  null,
+  [
+    [[325,880],[430,790],[540,675],[670,540],[810,410],[960,285],[1050,260],[1065,330],[985,425],[845,545],[700,675],[560,805],[425,920]],
+    [[650,560],[525,475],[380,390],[250,300],[290,275],[440,340],[615,435]],
+    [[735,675],[860,780],[990,940],[1070,1010],[1040,930],[900,735]],
+    [[425,805],[275,735],[225,700],[285,780],[400,875]],
+    [[500,900],[530,1005],[490,1045],[445,970]],
+    [[650,650],[730,570],[815,490],[910,405]]
+  ],
+  [
+    [[180,565],[190,420],[275,275],[380,220],[510,250],[700,255],[900,270],[1040,330],[1100,505]],
+    [[190,565],[430,625],[800,680],[1110,590]],
+    [[185,590],[190,920],[470,995],[830,1060],[1090,940],[1100,610]],
+    [[440,260],[380,430],[390,580]],
+    [[830,270],[790,430],[820,620]],
+    [[470,640],[485,755],[525,770],[555,685]],
+    [[205,950],[460,980],[790,1045],[1080,955]]
+  ],
+  [
+    [[300,190],[290,75],[380,175],[520,190],[650,195],[800,180],[940,75],[950,250]],
+    [[300,190],[220,340],[220,520],[285,630],[340,735],[400,930],[560,1020],[750,1020],[900,920],[970,700],[1000,500],[950,250]],
+    [[350,380],[410,295],[500,315],[560,395],[530,500],[440,530],[350,460],[350,380]],
+    [[700,380],[765,295],[855,315],[910,400],[870,510],[775,530],[700,450],[700,380]],
+    [[590,475],[640,555],[690,475]],
+    [[300,650],[180,810],[210,900],[345,800],[405,650]],
+    [[900,650],[1030,815],[1010,900],[880,805]],
+    [[470,1020],[445,1150],[570,1150]],
+    [[790,1020],[760,1150],[870,1150]]
+  ],
+  [
+    [[380,500],[390,340],[450,210],[560,130],[675,130],[790,210],[850,360],[870,510]],
+    [[210,505],[250,1040],[380,1110],[930,1110],[1060,1040],[1080,515]],
+    [[210,505],[385,475],[870,475],[1080,515]],
+    [[415,485],[415,600],[475,610],[475,510]],
+    [[815,505],[815,605],[875,610],[875,515]],
+    [[430,720],[840,720],[850,1000],[425,1000],[430,720]]
+  ],
+  [
+    [[250,500],[395,485],[535,465],[670,450],[800,430],[940,425],[1080,505]],
+    [[300,565],[490,555],[680,535],[870,515],[1050,550]],
+    [[315,620],[510,605],[710,590],[900,570],[1080,610]],
+    [[405,650],[340,865],[470,900],[650,900],[800,900],[1000,865],[1095,765]],
+    [[540,665],[545,805]],
+    [[835,635],[855,800]],
+    [[170,360],[200,470],[170,650],[95,780],[155,870]]
+  ],
+  [
+    [[155,700],[260,555],[435,500],[660,510],[860,550],[1050,535],[1150,350]],
+    [[155,700],[330,760],[510,780],[700,820],[880,785],[1050,700],[1150,895]],
+    [[535,505],[650,330],[710,285],[755,510]],
+    [[280,750],[220,850],[125,940]],
+    [[350,770],[435,925],[530,985]],
+    [[540,785],[600,875],[670,840]],
+    [[1040,700],[1150,850],[1180,690],[1160,480]]
+  ],
+  [
+    [[200,230],[400,235],[620,250],[780,245]],
+    [[445,255],[400,420],[355,630],[350,820]],
+    [[355,820],[465,985],[695,1000],[955,995]],
+    [[270,1020],[285,920],[370,875],[455,920],[470,1025],[380,1100],[285,1060],[270,1020]],
+    [[900,1010],[920,915],[1035,865],[1120,950],[1090,1060],[995,1100],[900,1010]],
+    [[420,815],[510,955]],
+    [[480,1010],[710,1010],[930,1015]]
+  ],
+  [
+    [[280,255],[450,235],[560,255],[535,460],[545,750],[605,925],[565,1010],[340,1055],[130,1020],[120,925],[285,860],[310,620],[280,255]],
+    [[325,320],[500,330]],
+    [[150,965],[320,1005],[540,985]],
+    [[780,255],[965,235],[1090,255],[1065,490],[1070,755],[1130,930],[1085,1010],[835,1055],[690,1015],[690,920],[790,860],[800,610],[780,255]],
+    [[820,325],[1040,330]],
+    [[710,970],[850,1010],[1090,990]]
+  ]
 ];
 function activeTraces(){
   if(roundIndex===0)return traces;
   const paths=picturePaths[roundIndex];
-  return paths.map((points,i)=>({points,start:i/paths.length*.68,duration:.31}));
+  return paths.map((points,i)=>({
+    points,start:i/paths.length*.68,duration:.31
+  }));
 }
-const reveal=document.createElement("canvas"),mask=document.createElement("canvas");
-reveal.width=reveal.height=512;mask.width=mask.height=512;
-const revealCtx=reveal.getContext("2d"),maskCtx=mask.getContext("2d");
+const reveal=document.createElement("canvas");
+const mask=document.createElement("canvas");
+reveal.width=reveal.height=512;
+mask.width=mask.height=512;
+const revealCtx=reveal.getContext("2d");
+const maskCtx=mask.getContext("2d");
 function resize(){
-  const box=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+  const box=canvas.getBoundingClientRect();
+  const dpr=Math.min(window.devicePixelRatio||1,2);
   canvas.width=Math.round(box.width*dpr);
   canvas.height=Math.round(box.height*dpr);
   const logicalWidth=box.width<box.height?560:960;
@@ -149,7 +201,8 @@ function resize(){
   offsetX=(canvas.width-960*scale)/2;
   offsetY=(canvas.height-540*scale)/2;
 }
-window.addEventListener("resize",resize);resize();
+window.addEventListener("resize",resize);
+resize();
 function load(image,path){
   return new Promise((resolve,reject)=>{
     image.onload=resolve;
@@ -169,13 +222,13 @@ function fillSand(){
   sand.globalCompositeOperation="source-over";
   sand.clearRect(0,0,pane.w,pane.h);
   const ratio=pane.w/pane.h;
-  const sw=Math.min(texture.width,texture.height*ratio),sh=sw/ratio;
+  const sw=Math.min(texture.width,texture.height*ratio);
+  const sh=sw/ratio;
   sand.drawImage(texture,(texture.width-sw)/2,(texture.height-sh)/2,sw,sh,0,0,pane.w,pane.h);
   flying=[];
 }
 function showPattern(){
   patternSvg.innerHTML=patterns[rounds[roundIndex].pattern];
-  patternHelp.textContent="Можно рисовать по частям";
   patternBox.classList.remove("hidden");
   nextButton.classList.remove("show");
   resetButton.hidden=false;
@@ -192,7 +245,8 @@ function resample(points,count=32){
   for(let i=0;i<count;i++){
     const target=total*i/(count-1);
     while(j<distances.length-1&&distances[j]<target)j++;
-    const d=distances[j]-distances[j-1],t=d?(target-distances[j-1])/d:0;
+    const d=distances[j]-distances[j-1];
+    const t=d?(target-distances[j-1])/d:0;
     result.push({
       x:points[j-1].x+(points[j].x-points[j-1].x)*t,
       y:points[j-1].y+(points[j].y-points[j-1].y)*t
@@ -211,15 +265,18 @@ function shapePath(kind,count=32){
 }
 function matchesPattern(points,kind){
   if(points.length<5)return false;
-  const minX=Math.min(...points.map(p=>p.x)),maxX=Math.max(...points.map(p=>p.x));
-  const minY=Math.min(...points.map(p=>p.y)),maxY=Math.max(...points.map(p=>p.y));
+  const minX=Math.min(...points.map(p=>p.x));
+  const maxX=Math.max(...points.map(p=>p.x));
+  const minY=Math.min(...points.map(p=>p.y));
+  const maxY=Math.max(...points.map(p=>p.y));
   const w=maxX-minX,h=maxY-minY;
   if(w<40||h<16)return false;
   const sampled=resample(points);
-  const length=points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
+  const length=points.slice(1).reduce((sum,p,i)=>
+    sum+Math.hypot(p.x-points[i].x,p.y-points[i].y),0);
   if(length<70)return false;
   const first=points[0],last=points[points.length-1];
-  if(kind==="square"){
+  if(kind==="square"||kind==="circle"||kind==="triangle"){
     if(w/h<.45||w/h>2.2)return false;
     const gap=Math.hypot(first.x-last.x,first.y-last.y);
     const cx=(minX+maxX)/2,cy=(minY+maxY)/2;
@@ -231,13 +288,49 @@ function matchesPattern(points,kind){
     }
     return Math.abs(sweep)>4.1&&gap<Math.hypot(w,h)*.75;
   }
+  if(kind==="balloon"){
+    if(strokes.length<2)return false;
+    const circle=strokes.slice(0,-1).flat();
+    const tail=strokes[strokes.length-1];
+    if(circle.length<5||tail.length<2)return false;
+    const top=Math.min(...circle.map(p=>p.y));
+    const bottom=Math.max(...circle.map(p=>p.y));
+    const left=Math.min(...circle.map(p=>p.x));
+    const right=Math.max(...circle.map(p=>p.x));
+    const gap=Math.hypot(circle[0].x-circle.at(-1).x,circle[0].y-circle.at(-1).y);
+    return right-left>40&&bottom-top>40
+      &&gap<Math.hypot(right-left,bottom-top)*.8
+      &&Math.max(...tail.map(p=>p.y))>bottom+12;
+  }
+  if(kind==="cloud"||kind==="bush"||kind==="heart"){
+    if(w/h<.75)return false;
+    const gap=Math.hypot(first.x-last.x,first.y-last.y);
+    if(gap>Math.hypot(w,h)*.9)return false;
+    if(kind==="heart"){
+      const topLeft=points.filter(p=>p.x>minX+w*.12&&p.x<minX+w*.42)
+        .reduce((v,p)=>Math.min(v,p.y),Infinity);
+      const topRight=points.filter(p=>p.x>minX+w*.58&&p.x<minX+w*.88)
+        .reduce((v,p)=>Math.min(v,p.y),Infinity);
+      const topCenter=points.filter(p=>
+        p.x>minX+w*.44&&p.x<minX+w*.56&&p.y<minY+h*.5
+      ).reduce((v,p)=>Math.min(v,p.y),Infinity);
+      return topCenter<Infinity&&topCenter>Math.min(topLeft,topRight)+h*.08;
+    }
+    let changes=0,previous=0;
+    for(let i=2;i<sampled.length;i++){
+      const dy=sampled[i].y-sampled[i-2].y;
+      const direction=Math.abs(dy)>h*.05?Math.sign(dy):0;
+      if(direction&&previous&&direction!==previous)changes++;
+      if(direction)previous=direction;
+    }
+    return changes>=2;
+  }
   if(w/h<.75)return false;
   const normalized=sampled.map(p=>({x:(p.x-minX)/w,y:(p.y-minY)/h}));
   const oriented=first.x<=last.x?normalized:[...normalized].reverse();
   const ends=(oriented[2].y+oriented[29].y)/2;
   const middle=(oriented[13].y+oriented[16].y+oriented[19].y)/3;
   if(kind==="smile")return middle-ends>.20;
-  if(kind==="arch")return ends-middle>.20;
   let turns=0,direction=0,extreme=oriented[0].y;
   for(let i=1;i<oriented.length;i++){
     const y=oriented[i].y;
@@ -251,7 +344,8 @@ function matchesPattern(points,kind){
   }
   if(turns>=2)return true;
   const model=shapePath(kind);
-  const score=list=>list.reduce((sum,p,i)=>sum+Math.hypot(p.x-model[i].x,p.y-model[i].y),0)/list.length;
+  const score=list=>list.reduce((sum,p,i)=>
+    sum+Math.hypot(p.x-model[i].x,p.y-model[i].y),0)/list.length;
   return score(oriented)<.43;
 }
 function combinedStrokes(){
@@ -260,8 +354,10 @@ function combinedStrokes(){
     if(!part.length)continue;
     let next=part;
     if(result.length){
-      const end=result[result.length-1],first=part[0],last=part[part.length-1];
-      if(Math.hypot(end.x-last.x,end.y-last.y)<Math.hypot(end.x-first.x,end.y-first.y))
+      const end=result[result.length-1];
+      const first=part[0],last=part[part.length-1];
+      if(Math.hypot(end.x-last.x,end.y-last.y)<
+         Math.hypot(end.x-first.x,end.y-first.y))
         next=[...part].reverse();
     }
     result.push(...next);
@@ -303,10 +399,12 @@ function stamp(x,y,dx,dy){
     ridge.addColorStop(0,"rgba(255,226,162,.46)");
     ridge.addColorStop(.55,"rgba(157,99,51,.21)");
     ridge.addColorStop(1,"rgba(105,64,37,0)");
-    sand.fillStyle=ridge;sand.beginPath();sand.arc(bx,by,7,0,Math.PI*2);sand.fill();
+    sand.fillStyle=ridge;
+    sand.beginPath();sand.arc(bx,by,7,0,Math.PI*2);sand.fill();
     for(let j=0;j<5;j++){
       const spread=r*(.77+Math.random()*.42),along=(Math.random()-.5)*9;
-      const px=sx+nx*spread*side+dx/len*along,py=sy+ny*spread*side+dy/len*along;
+      const px=sx+nx*spread*side+dx/len*along;
+      const py=sy+ny*spread*side+dy/len*along;
       if(px<2||py<2||px>pane.w-2||py>pane.h-2)continue;
       const size=.45+Math.random()*1.25;
       const color=Math.random()<.55?"#f8d693":Math.random()<.6?"#d39b57":"#9e693e";
@@ -314,8 +412,8 @@ function stamp(x,y,dx,dy){
       if(Math.random()<.34&&flying.length<180){
         flying.push({
           x:px,y:py,vx:nx*side*(.6+Math.random()*1.4),
-          vy:ny*side*(.6+Math.random()*1.4),size,color,age:0,
-          life:9+Math.random()*9
+          vy:ny*side*(.6+Math.random()*1.4),
+          size,color,age:0,life:9+Math.random()*9
         });
       }
     }
@@ -512,7 +610,7 @@ function resetRound(){
   if(!ready)return;
   fillSand();phase="draw";drawing=false;visible=false;oldMarks=null;
   stroke=[];strokes=[];
-  hint.textContent="Нарисуй образец слева. Можно рисовать по частям";
+  hint.textContent="Нарисуй образец слева";
   showPattern();
 }
 resetButton.addEventListener("click",resetRound);
@@ -556,7 +654,7 @@ Promise.all([
   })
 ]).then(()=>{
   fillSand();ready=true;
-  hint.textContent="Нарисуй образец слева. Можно рисовать по частям";
+  hint.textContent="Нарисуй образец слева";
   showPattern();
   loadFirst(sparkle,["blik.png","gitkeep/blik.png"]).catch(()=>{});
 }).catch(error=>{
